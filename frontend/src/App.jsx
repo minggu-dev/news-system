@@ -32,6 +32,61 @@ function App() {
   const [historyTotalElements, setHistoryTotalElements] = useState(0);
   const historyPageSize = 20;
   const [users, setUsers] = useState([]);
+  const [currentView, setCurrentView] = useState('categories'); // 'categories' | 'list'
+
+  // Reset to categories view when navigating back to articles tab
+  useEffect(() => {
+    if (activeTab === 'articles') {
+      setCurrentView('categories');
+    }
+  }, [activeTab]);
+
+  const getCategoryTheme = (cat) => {
+    switch (cat) {
+      case '전체':
+        return {
+          gradient: 'from-slate-900/80 to-[#0e1626]/80 border-slate-800 hover:border-cyan-500/40 hover:shadow-cyan-500/5',
+          textColor: 'text-cyan-400',
+          desc: '정치, 경제, 사회 등 모든 카테고리의 종합 뉴스 기사를 시간순으로 열람합니다.'
+        };
+      case '정치':
+        return {
+          gradient: 'from-[#0b1b36]/80 to-[#0d1424]/80 border-blue-900/40 hover:border-blue-500/40 hover:shadow-blue-500/5',
+          textColor: 'text-blue-400',
+          desc: '국내외 주요 정계 현안, 국회 입법 동향 및 정부 관련 보도를 탐색합니다.'
+        };
+      case '북한':
+        return {
+          gradient: 'from-[#360b13]/80 to-[#1c0d10]/80 border-rose-900/40 hover:border-rose-500/40 hover:shadow-rose-500/5',
+          textColor: 'text-rose-400',
+          desc: '남북 관계 현황, 한반도 정세 분석 및 북한 내부 소식을 실시간 파악합니다.'
+        };
+      case '경제':
+        return {
+          gradient: 'from-[#0b361c]/80 to-[#0d2115]/80 border-emerald-900/40 hover:border-emerald-500/40 hover:shadow-emerald-500/5',
+          textColor: 'text-emerald-400',
+          desc: '거시 경제 지표, 금융 시장 트렌드, 기업 재무 및 경제 정책 정보를 확인합니다.'
+        };
+      case '산업':
+        return {
+          gradient: 'from-[#36210b]/80 to-[#21170d]/80 border-amber-900/40 hover:border-amber-500/40 hover:shadow-amber-500/5',
+          textColor: 'text-amber-400',
+          desc: 'IT, 과학 기술, 신산업 분야 동향, 제조 및 대기업 동정을 파악합니다.'
+        };
+      case '사회':
+        return {
+          gradient: 'from-[#0b2b36]/80 to-[#0d1e24]/80 border-cyan-900/40 hover:border-cyan-500/40 hover:shadow-cyan-500/5',
+          textColor: 'text-cyan-400',
+          desc: '전국 법조계 소식, 교육 환경, 보건 안전 및 일상 사회적 제반 뉴스를 모아봅니다.'
+        };
+      default:
+        return {
+          gradient: 'from-slate-800 to-slate-950 border-slate-700',
+          textColor: 'text-slate-400',
+          desc: '카테고리 뉴스'
+        };
+    }
+  };
   const [selectedArticle, setSelectedArticle] = useState(null);
   
   const [loadingArticles, setLoadingArticles] = useState(false);
@@ -237,8 +292,8 @@ function App() {
             </button>
           </div>
 
-          {/* Category Filter - Only shows when 'articles' tab is active */}
-          {activeTab === 'articles' && (
+          {/* Category Filter - Only shows when 'articles' tab is active and currentView is list */}
+          {activeTab === 'articles' && currentView === 'list' && (
             <div className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2 px-2">
                 <Filter className="w-3 h-3" /> 카테고리 필터
@@ -278,104 +333,160 @@ function App() {
         <main className="flex-1 flex flex-col overflow-hidden bg-[#070a10]">
           {activeTab === 'articles' && (
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Search bar */}
-              <div className="p-4 bg-[#0a0f18]/60 border-b border-slate-800/60 flex items-center gap-3">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="기사 제목 또는 작성자 검색..."
-                    className="w-full bg-[#101726] border border-slate-800 focus:border-cyan-500/60 focus:outline-none rounded-xl py-2 pl-10 pr-4 text-sm text-slate-200 placeholder:text-slate-500 transition-all duration-200"
-                  />
-                  {searchTerm && (
-                    <button 
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-700/50"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-                <div className="text-xs text-slate-400 ml-auto">
-                  조회된 기사: <span className="font-semibold text-cyan-400">{filteredArticles.length}</span>건
-                </div>
-              </div>
-
-              {/* Articles list */}
-              <div className="flex-1 overflow-y-auto p-6">
-                {loadingArticles ? (
-                  <div className="h-full flex items-center justify-center flex-col gap-3">
-                    <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
-                    <p className="text-sm text-slate-400">뉴스 기사를 가져오는 중입니다...</p>
-                  </div>
-                ) : filteredArticles.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                    <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-4">
-                      <Newspaper className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-base font-semibold text-slate-300">표시할 기사가 없습니다</h3>
-                    <p className="text-sm text-slate-500 mt-1 max-w-sm">
-                      상단의 즉시 수집 버튼을 눌러 연합뉴스 실시간 RSS 데이터를 데이터베이스로 긁어오세요.
+              {currentView === 'categories' ? (
+                /* 1. Category Selection Screen */
+                <div className="flex-1 overflow-y-auto p-8 flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
+                  <div className="text-center mb-8">
+                    <h2 className="text-2xl font-extrabold text-white bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
+                      관심 카테고리를 선택하세요
+                    </h2>
+                    <p className="text-sm text-slate-400">
+                      연합뉴스에서 제공하는 실시간 분야별 뉴스 속보 기사를 열람할 수 있습니다.
                     </p>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {filteredArticles.map((article) => (
-                      <div
-                        key={article.articleId}
-                        onClick={() => handleArticleClick(article)}
-                        className={`group relative flex flex-col justify-between p-5 rounded-2xl border transition-all duration-300 cursor-pointer ${
-                          article.read
-                            ? 'bg-[#0b101b]/40 border-slate-900/60 opacity-65 hover:opacity-90 hover:border-slate-800'
-                            : 'bg-gradient-to-b from-[#111727] to-[#0c1220] border-slate-800 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/5'
-                        }`}
-                      >
-                        <div>
-                          {/* Card Header Info */}
-                          <div className="flex items-center justify-between gap-2 mb-3">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800/80 text-cyan-400 uppercase">
-                              {article.category}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                    {['전체', '정치', '북한', '경제', '산업', '사회'].map(cat => {
+                      const theme = getCategoryTheme(cat);
+                      return (
+                        <div
+                          key={cat}
+                          onClick={() => {
+                            setSelectedCategory(cat);
+                            setCurrentView('list');
+                          }}
+                          className={`group p-6 rounded-2xl border bg-gradient-to-b ${theme.gradient} cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between h-40`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <span className={`text-base font-bold ${theme.textColor} group-hover:text-white transition-colors`}>
+                              {cat}
                             </span>
-                            
-                            {!article.read ? (
-                              <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                읽지 않음
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-slate-500 font-medium">
-                                읽음
-                              </span>
-                            )}
+                            <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
                           </div>
-
-                          {/* Title */}
-                          <h3 className={`text-sm font-semibold line-clamp-2 mb-3 transition-colors ${
-                            article.read ? 'text-slate-400' : 'text-slate-200 group-hover:text-cyan-400'
-                          }`}>
-                            {article.title}
-                          </h3>
-                        </div>
-
-                        {/* Card Footer Info */}
-                        <div className="mt-4 pt-3 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
-                          <div className="flex items-center gap-1">
-                            <span className="truncate max-w-[100px]">{article.dcCreator || '연합뉴스'}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            <span>
-                              {article.pubDate ? article.pubDate.substring(5, 16) : ''}
-                            </span>
+                          <div>
+                            <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                              {theme.desc}
+                            </p>
+                            <div className="w-full h-1 bg-slate-800/40 rounded-full mt-4 overflow-hidden">
+                              <div className="w-0 h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all group-hover:w-full duration-500" />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                /* 2. Article List Screen */
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  {/* Search bar & Back Button */}
+                  <div className="p-4 bg-[#0a0f18]/60 border-b border-slate-800/60 flex items-center gap-3">
+                    <button
+                      onClick={() => setCurrentView('categories')}
+                      className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-cyan-300 transition-all px-3 py-2 rounded-xl bg-[#101726] border border-slate-800 hover:border-slate-700/80 active:scale-95 shrink-0"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5 rotate-180" /> 카테고리 목록
+                    </button>
+                    <div className="h-6 w-[1px] bg-slate-800 mr-1" />
+
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder={`${selectedCategory} 기사 제목 또는 작성자 검색...`}
+                        className="w-full bg-[#101726] border border-slate-800 focus:border-cyan-500/60 focus:outline-none rounded-xl py-2 pl-10 pr-4 text-sm text-slate-200 placeholder:text-slate-500 transition-all duration-200"
+                      />
+                      {searchTerm && (
+                        <button 
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-700/50"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-400 ml-auto">
+                      선택 분야: <span className="font-bold text-cyan-400">{selectedCategory}</span> | 조회: <span className="font-semibold text-cyan-400">{filteredArticles.length}</span>건
+                    </div>
+                  </div>
+
+                  {/* Articles list */}
+                  <div className="flex-1 overflow-y-auto p-6">
+                    {loadingArticles ? (
+                      <div className="h-full flex items-center justify-center flex-col gap-3">
+                        <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
+                        <p className="text-sm text-slate-400">뉴스 기사를 가져오는 중입니다...</p>
+                      </div>
+                    ) : filteredArticles.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                        <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-4">
+                          <Newspaper className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-base font-semibold text-slate-300">표시할 기사가 없습니다</h3>
+                        <p className="text-sm text-slate-500 mt-1 max-w-sm">
+                          상단의 즉시 수집 버튼을 눌러 연합뉴스 실시간 RSS 데이터를 데이터베이스로 긁어오세요.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                        {filteredArticles.map((article) => (
+                          <div
+                            key={article.articleId}
+                            onClick={() => handleArticleClick(article)}
+                            className={`group relative flex flex-col justify-between p-5 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                              article.read
+                                ? 'bg-[#0b101b]/40 border-slate-900/60 opacity-65 hover:opacity-90 hover:border-slate-800'
+                                : 'bg-gradient-to-b from-[#111727] to-[#0c1220] border-slate-800 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/5'
+                            }`}
+                          >
+                            <div>
+                              {/* Card Header Info */}
+                              <div className="flex items-center justify-between gap-2 mb-3">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800/80 text-cyan-400 uppercase">
+                                  {article.category}
+                                </span>
+                                
+                                {!article.read ? (
+                                  <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                    읽지 않음
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-slate-500 font-medium">
+                                    읽음
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Title */}
+                              <h3 className={`text-sm font-semibold line-clamp-2 mb-3 transition-colors ${
+                                article.read ? 'text-slate-400' : 'text-slate-200 group-hover:text-cyan-400'
+                              }`}>
+                                {article.title}
+                              </h3>
+                            </div>
+
+                            {/* Card Footer Info */}
+                            <div className="mt-4 pt-3 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
+                              <div className="flex items-center gap-1">
+                                <span className="truncate max-w-[100px]">{article.dcCreator || '연합뉴스'}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>
+                                  {article.pubDate ? article.pubDate.substring(5, 16) : ''}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
