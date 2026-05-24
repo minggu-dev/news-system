@@ -12,6 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Map;
 
@@ -65,11 +68,14 @@ public class NewsApiController {
     }
 
     /**
-     * Get simulated push notification history.
+     * Get simulated push notification history with pagination.
      */
     @GetMapping("/push-history")
-    public ResponseEntity<List<PushHistory>> getPushHistory() {
-        return ResponseEntity.ok(pushHistoryRepository.findAllByOrderBySentAtDesc());
+    public ResponseEntity<Page<PushHistory>> getPushHistory(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(pushHistoryRepository.findAllByOrderBySentAtDesc(pageable));
     }
 
     /**

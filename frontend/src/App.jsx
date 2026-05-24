@@ -27,6 +27,10 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [articles, setArticles] = useState([]);
   const [pushHistory, setPushHistory] = useState([]);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyTotalPages, setHistoryTotalPages] = useState(0);
+  const [historyTotalElements, setHistoryTotalElements] = useState(0);
+  const historyPageSize = 20;
   const [users, setUsers] = useState([]);
   const [selectedArticle, setSelectedArticle] = useState(null);
   
@@ -95,13 +99,16 @@ function App() {
     }
   };
 
-  const fetchPushHistory = async () => {
+  const fetchPushHistory = async (page = 0) => {
     setLoadingHistory(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/push-history`);
+      const res = await fetch(`${API_BASE_URL}/push-history?page=${page}&size=${historyPageSize}`);
       if (res.ok) {
         const data = await res.json();
-        setPushHistory(data);
+        setPushHistory(data.content || []);
+        setHistoryTotalPages(data.totalPages || 0);
+        setHistoryTotalElements(data.totalElements || 0);
+        setHistoryPage(page);
       }
     } catch (err) {
       console.error('Failed to fetch push history:', err);
@@ -401,64 +408,92 @@ function App() {
                     </p>
                   </div>
                 ) : (
-                  <div className="flex-1 overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead className="sticky top-0 bg-[#101726] border-b border-slate-800 text-slate-400 font-semibold z-10">
-                        <tr>
-                          <th className="px-5 py-3.5">No</th>
-                          <th className="px-5 py-3.5">발송 타입</th>
-                          <th className="px-5 py-3.5">디바이스 ID</th>
-                          <th className="px-5 py-3.5">카테고리</th>
-                          <th className="px-5 py-3.5">기사 제목</th>
-                          <th className="px-5 py-3.5">전송 시간</th>
-                          <th className="px-5 py-3.5">전송 결과</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60 bg-[#0a0f18]/30">
-                        {pushHistory.map((item, idx) => (
-                          <tr key={item.id || idx} className="hover:bg-slate-900/30 transition-colors">
-                            <td className="px-5 py-3 text-slate-500 font-mono">
-                              {pushHistory.length - idx}
-                            </td>
-                            <td className="px-5 py-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                item.pushType === 'APNs' 
-                                  ? 'bg-blue-950/60 text-blue-400 border border-blue-500/20' 
-                                  : 'bg-orange-950/60 text-orange-400 border border-orange-500/20'
-                              }`}>
-                                {item.pushType}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3 text-slate-400 font-mono max-w-[150px] truncate" title={item.deviceId}>
-                              {item.deviceId}
-                            </td>
-                            <td className="px-5 py-3">
-                              <span className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded text-[10px] font-semibold">
-                                {item.articleCategory}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3 text-slate-300 font-medium max-w-[280px] truncate" title={item.articleTitle}>
-                              {item.articleTitle}
-                            </td>
-                            <td className="px-5 py-3 text-slate-500">
-                              {item.sentAt ? item.sentAt.replace('T', ' ').substring(5, 19) : ''}
-                            </td>
-                            <td className="px-5 py-3">
-                              {item.status === 'success' ? (
-                                <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
-                                  <CheckCircle className="w-3.5 h-3.5" /> 성공
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-rose-400 font-semibold">
-                                  <AlertCircle className="w-3.5 h-3.5" /> 실패
-                                </span>
-                              )}
-                            </td>
+                  <>
+                    <div className="flex-1 overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead className="sticky top-0 bg-[#101726] border-b border-slate-800 text-slate-400 font-semibold z-10">
+                          <tr>
+                            <th className="px-5 py-3.5">No</th>
+                            <th className="px-5 py-3.5">발송 타입</th>
+                            <th className="px-5 py-3.5">디바이스 ID</th>
+                            <th className="px-5 py-3.5">카테고리</th>
+                            <th className="px-5 py-3.5">기사 제목</th>
+                            <th className="px-5 py-3.5">전송 시간</th>
+                            <th className="px-5 py-3.5">전송 결과</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60 bg-[#0a0f18]/30">
+                          {pushHistory.map((item, idx) => (
+                            <tr key={item.id || idx} className="hover:bg-slate-900/30 transition-colors">
+                              <td className="px-5 py-3 text-slate-500 font-mono">
+                                {historyTotalElements - (historyPage * historyPageSize) - idx}
+                              </td>
+                              <td className="px-5 py-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  item.pushType === 'APNs' 
+                                    ? 'bg-blue-950/60 text-blue-400 border border-blue-500/20' 
+                                    : 'bg-orange-950/60 text-orange-400 border border-orange-500/20'
+                                }`}>
+                                  {item.pushType}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3 text-slate-400 font-mono max-w-[150px] truncate" title={item.deviceId}>
+                                {item.deviceId}
+                              </td>
+                              <td className="px-5 py-3">
+                                <span className="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                  {item.articleCategory}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3 text-slate-300 font-medium max-w-[280px] truncate" title={item.articleTitle}>
+                                {item.articleTitle}
+                              </td>
+                              <td className="px-5 py-3 text-slate-500">
+                                {item.sentAt ? item.sentAt.replace('T', ' ').substring(5, 19) : ''}
+                              </td>
+                              <td className="px-5 py-3">
+                                {item.status === 'success' ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                                    <CheckCircle className="w-3.5 h-3.5" /> 성공
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-rose-400 font-semibold">
+                                    <AlertCircle className="w-3.5 h-3.5" /> 실패
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {pushHistory.length > 0 && (
+                      <div className="p-4 bg-[#101726]/60 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
+                        <div>
+                          전체 <span className="font-semibold text-cyan-400">{historyTotalElements}</span>건 중 
+                          현재 페이지: <span className="font-semibold text-white">{historyPage + 1}</span> / <span className="font-semibold text-white">{historyTotalPages || 1}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => fetchPushHistory(historyPage - 1)}
+                            disabled={historyPage === 0 || loadingHistory}
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            이전
+                          </button>
+                          <button
+                            onClick={() => fetchPushHistory(historyPage + 1)}
+                            disabled={historyPage >= historyTotalPages - 1 || loadingHistory}
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            다음
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
