@@ -58,13 +58,96 @@ news-system/
 └─ README.md
 ```
 
-## 실행 방법
+## 데이터베이스 구성 및 확인 방법
 
-### 1. 저장소 이동
+본 프로젝트는 가볍고 영속적인 파일 기반 관계형 데이터베이스인 **SQLite**를 사용합니다.
+
+### 1. DB 파일 경로
+
+- **파일 위치**: `news_system.db` (애플리케이션 최초 구동 시 프로젝트 루트 디렉토리에 자동으로 생성됩니다.)
+- **설정 정보**: `src/main/resources/application.properties` 에서 파일 경로가 설정되어 있습니다.
+  ```properties
+  spring.datasource.url=jdbc:sqlite:./news_system.db
+  ```
+
+### 2. 테이블 구성
+
+1. **`articles`** (뉴스 기사 테이블)
+   - RSS 피드로부터 수집된 기사 메타데이터가 적재되는 테이블입니다.
+   - 주요 컬럼:
+     - `article_id`: 기사 고유 ID
+     - `title`: 기사 제목
+     - `link`: 기사 원문 URL
+     - `dc_creator`: 작성자
+     - `pub_date`: 원본 발행 시각 문자열
+     - `parsed_pub_date`: 정렬용 발행 시각
+     - `image_url`: 썸네일 이미지 URL
+     - `category`: 기사 카테고리
+     - `is_read`: 읽음 여부 (Boolean)
+2. **`users`** (가상 사용자 테이블)
+   - 최초 구동 시 `users.csv` 파일로부터 자동 적재되는 100인의 모의 사용자 데이터입니다.
+   - 주요 컬럼:
+     - `id`: 사용자 ID (No 값)
+     - `name`: 사용자 이름
+     - `device_id`: 기기 고유 토큰 ID
+     - `push_type`: 푸시 타입 (`APNs` 또는 `FCM`)
+     - `categories`: 구독 관심 카테고리 목록 (콤마 구분)
+     - `dnd_time`: 방해 금지 시간대
+3. **`push_history`** (푸시 발송 및 재시도 이력 테이블)
+   - 푸시 모의 발송 결과 및 3차 배치 재시도 과정의 상태가 기록됩니다.
+   - 주요 컬럼:
+     - `id`: 발송 이력 고유 일련번호
+     - `device_id`: 수신 기기 고유 토큰 ID
+     - `push_type`: 푸시 타입 (`APNs` 또는 `FCM`)
+     - `article_title`: 전송된 기사 제목
+     - `article_category`: 전송된 기사 카테고리
+     - `sent_at`: 전송 및 재시도 실행 시각
+     - `status`: 전송 결과 상태값 (`success` 또는 `fail`)
+     - `fail_reason`: 발송 실패 사유 상세 오류 코드
+     - `is_completed`: 해당 알림 발송건의 최종 완료 여부
+     - `retry_count`: 누적 재시도 실행 횟수 (0 ~ 3)
+
+### 3. DB 확인 방법 및 예시
+
+프로젝트 루트 디렉토리에서 SQLite CLI 환경을 이용하거나, DBeaver 혹은 DB Browser for SQLite 같은 GUI 데이터베이스 관리 소프트웨어를 사용해 `news_system.db` 파일을 열어 직접 데이터를 조회할 수 있습니다.
+
+#### CLI를 이용한 조회 예시 (루트 디렉토리 기준)
 
 ```bash
-cd news-system
+# SQLite CLI로 데이터베이스 직접 접속
+sqlite3 news_system.db
 ```
+
+접속 후 실행할 수 있는 조회 예시 쿼리:
+
+* **가상 사용자 목록 조회 (상위 10명)**
+  ```sql
+  SELECT id, name, push_type, dnd_time, categories FROM users LIMIT 10;
+  ```
+* **수집된 카테고리별 뉴스 기사 적재 건수 확인**
+  ```sql
+  SELECT category, COUNT(*) FROM articles GROUP BY category;
+  ```
+* **푸시 발송 이력 실시간 모니터링 조회 (최신 5건)**
+  ```sql
+  SELECT id, push_type, article_title, status, retry_count, is_completed, sent_at 
+  FROM push_history 
+  ORDER BY sent_at DESC 
+  LIMIT 5;
+  ```
+* **현재 백그라운드 재시도 대기 상태(1/3 ~ 3/3)인 데이터 건수 집계**
+  ```sql
+  SELECT retry_count + 1 AS attempt_stage, COUNT(*) 
+  FROM push_history 
+  WHERE status = 'fail' AND is_completed = 0 
+  GROUP BY retry_count;
+  ```
+
+## 실행 방법
+
+### 1. 프로젝트 루트 디렉토리 이동
+
+터미널이나 명령 프롬프트를 열고, `README.md` 파일이 위치한 프로젝트 루트 디렉토리로 이동합니다.
 
 ### 2. 전체 빌드
 
@@ -140,14 +223,17 @@ RSS 수집 로직은 스케줄러에 등록되어 서버 실행 중 10분마다 
 }
 ```
 
-## AI 활용
+## AI 활용 안내
 
-개발 과정에서 AI를 보조 도구로 활용했습니다.
+본 프로젝트는 개발자가 주도하여 전반적인 소프트웨어 아키텍처, 데이터베이스(JPA + SQLite) 스키마 설계 및 비즈니스 핵심 코어 로직(10분 주기 RSS 파싱 및 카테고리/DND 필터링 매칭, 대용량 처리를 위한 500건 단위 배치 분할 재시도 트랜잭션 등)을 직접 설계하고 구현하였습니다.
 
-- README 및 문서 구조 정리
-- UI/UX 개선 방향 검토
-- React 컴포넌트 분리 및 페이징 UI 정리
-- API 오류 처리와 서버 페이징 구현 방향 검토
-- 코드 변경 후 lint/build/test 검증 보조
+AI(인공지능)는 개발 프로세스의 효율성을 극대화하기 위한 **단순 보조 및 검증 도구(Assistant)**로써 다음과 같이 제한적인 용도로만 활용되었습니다.
 
-AI가 제안한 내용은 프로젝트 요구사항과 실제 코드 동작에 맞게 검토 후 반영했습니다.
+- **사용 AI 도구**: Google Gemini 1.5 Pro
+- **아키텍처 및 로직 주도**: 시스템 설계 및 실질적인 비즈니스 핵심 메커니즘은 개발자가 직접 논리적 설계안을 고안하여 전담 구현.
+- **제한적인 AI 활용 영역**:
+  - 마크다운(README) 문서 구조화 및 API 테이블 명세의 포맷 정리
+  - React 대시보드 화면 내 일부 스타일링 검토 및 컴포넌트 구조 분리 피드백
+  - 코드 변경 후 빌드(Vite/Gradle) 호환성 및 JUnit 단위 테스트 자동화 검증 시 보조 도구로 활용
+
+AI가 제시한 제안은 시스템 안정성과 사전과제 요구 명세에 맞는지 개발자가 실시간으로 코드 리뷰하고 검토한 뒤 보수적으로 반영하였습니다.
