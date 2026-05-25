@@ -43,4 +43,8 @@ public class PushHistory {
 
     @Column(nullable = false, length = 10)
     private String status; // 과제 2: 푸시 발송 결과(success 또는 fail)
+
+    @Column(name = "fail_reason", length = 100)
+    private String failReason; // 과제 2: 푸시 발송 실패 사유
 }
+

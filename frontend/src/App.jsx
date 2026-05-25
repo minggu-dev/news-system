@@ -581,38 +581,38 @@ function App() {
               </div>
 
               {/* 과제 2: 푸시 발송 이력 목록 */}
-              <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
-                {loadingHistory ? (
-                  <div className="flex-1 flex items-center justify-center flex-col gap-3">
-                    <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
-                    <p className="text-sm text-slate-400">발송 로그를 로딩하는 중입니다...</p>
+              {loadingHistory ? (
+                <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl flex items-center justify-center flex-col gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
+                  <p className="text-sm text-slate-400">발송 로그를 로딩하는 중입니다...</p>
+                </div>
+              ) : historyError ? (
+                <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-8">
+                  <div className="w-16 h-16 rounded-full bg-rose-950/30 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-4">
+                    <AlertCircle className="w-8 h-8" />
                   </div>
-                ) : historyError ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                    <div className="w-16 h-16 rounded-full bg-rose-950/30 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-4">
-                      <AlertCircle className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-base font-semibold text-slate-200">발송 이력을 불러오지 못했습니다</h3>
-                    <p className="text-sm text-slate-500 mt-1 max-w-sm">{historyError}</p>
-                    <button
-                      onClick={() => fetchPushHistory(historyPage, historyPageSize)}
-                      className="mt-4 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors"
-                    >
-                      다시 시도
-                    </button>
+                  <h3 className="text-base font-semibold text-slate-200">발송 이력을 불러오지 못했습니다</h3>
+                  <p className="text-sm text-slate-500 mt-1 max-w-sm">{historyError}</p>
+                  <button
+                    onClick={() => fetchPushHistory(historyPage, historyPageSize)}
+                    className="mt-4 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors"
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : pushHistory.length === 0 ? (
+                <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-8">
+                  <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-4">
+                    <Send className="w-8 h-8" />
                   </div>
-                ) : pushHistory.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                    <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-4">
-                      <Send className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-base font-semibold text-slate-300">발송 이력이 없습니다</h3>
-                    <p className="text-sm text-slate-500 mt-1 max-w-sm">
-                      아직 알림이 발송되지 않았습니다. 우상단의 즉시 수집 버튼을 눌러 모의 발송 프로세스를 트리거하세요.
-                    </p>
-                  </div>
-                ) : (
-                  <>
+                  <h3 className="text-base font-semibold text-slate-300">발송 이력이 없습니다</h3>
+                  <p className="text-sm text-slate-500 mt-1 max-w-sm">
+                    아직 알림이 발송되지 않았습니다. 우상단의 즉시 수집 버튼을 눌러 모의 발송 프로세스를 트리거하세요.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col gap-6 overflow-hidden">
+                  <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
                     <div className="flex-1 overflow-x-auto">
                       <table className="w-full text-left border-collapse text-xs">
                         <thead className="sticky top-0 bg-[#101726] border-b border-slate-800 text-slate-400 font-semibold z-10">
@@ -661,32 +661,41 @@ function App() {
                                     <CheckCircle className="w-3.5 h-3.5" /> 성공
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 text-rose-400 font-semibold">
-                                    <AlertCircle className="w-3.5 h-3.5" /> 실패
-                                  </span>
+                                  <div className="flex flex-col">
+                                    <span className="inline-flex items-center gap-1 text-rose-400 font-semibold">
+                                      <AlertCircle className="w-3.5 h-3.5" /> 실패
+                                    </span>
+                                    {/* 과제 2: 푸시 실패 시 상세 실패 사유를 하단에 작게 표시합니다 */}
+                                    {item.failReason && (
+                                      <span className="text-[10px] text-rose-500/80 font-mono mt-0.5 pl-[18px]" title={item.failReason}>
+                                        {item.failReason}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </td>
+
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
+                  </div>
 
-                    <PaginationBar
-                      currentPage={historyPage + 1}
-                      totalPages={historyTotalPages}
-                      totalItems={historyTotalElements}
-                      pageSize={historyPageSize}
-                      onPageChange={(page) => fetchPushHistory(page - 1)}
-                      onPageSizeChange={(size) => {
-                        setHistoryPageSize(size);
-                        fetchPushHistory(0, size);
-                      }}
-                      disabled={loadingHistory}
-                    />
-                  </>
-                )}
-              </div>
+                  <PaginationBar
+                    currentPage={historyPage + 1}
+                    totalPages={historyTotalPages}
+                    totalItems={historyTotalElements}
+                    pageSize={historyPageSize}
+                    onPageChange={(page) => fetchPushHistory(page - 1)}
+                    onPageSizeChange={(size) => {
+                      setHistoryPageSize(size);
+                      fetchPushHistory(0, size);
+                    }}
+                    disabled={loadingHistory}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -702,96 +711,97 @@ function App() {
               </div>
 
               {/* 과제 2: 사용자 정보 목록 */}
-              <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
-                {usersError ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                    <div className="w-16 h-16 rounded-full bg-rose-950/30 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-4">
-                      <AlertCircle className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-base font-semibold text-slate-200">사용자 목록을 불러오지 못했습니다</h3>
-                    <p className="text-sm text-slate-500 mt-1 max-w-sm">{usersError}</p>
-                    <button
-                      onClick={fetchUsers}
-                      className="mt-4 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors"
-                    >
-                      다시 시도
-                    </button>
+              {usersError ? (
+                <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-8">
+                  <div className="w-16 h-16 rounded-full bg-rose-950/30 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-4">
+                    <AlertCircle className="w-8 h-8" />
                   </div>
-                ) : users.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center flex-col gap-3">
-                    <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
-                    <p className="text-sm text-slate-400">사용자 목록을 불러오는 중입니다...</p>
-                  </div>
-                ) : (
-                  <>
+                  <h3 className="text-base font-semibold text-slate-200">사용자 목록을 불러오지 못했습니다</h3>
+                  <p className="text-sm text-slate-500 mt-1 max-w-sm">{usersError}</p>
+                  <button
+                    onClick={fetchUsers}
+                    className="mt-4 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors"
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : users.length === 0 ? (
+                <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl flex items-center justify-center flex-col gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
+                  <p className="text-sm text-slate-400">사용자 목록을 불러오는 중입니다...</p>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col gap-6 overflow-hidden">
+                  <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
                     <div className="flex-1 overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead className="sticky top-0 bg-[#101726] border-b border-slate-800 text-slate-400 font-semibold z-10">
-                        <tr>
-                          <th className="px-5 py-3.5 w-16">No</th>
-                          <th className="px-5 py-3.5">이름</th>
-                          <th className="px-5 py-3.5">푸시 타입</th>
-                          <th className="px-5 py-3.5">선호 카테고리</th>
-                          <th className="px-5 py-3.5">방해 금지 시간대 (DND)</th>
-                          <th className="px-5 py-3.5">기기 토큰 ID</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60 bg-[#0a0f18]/30">
-                        {paginatedUsers.map((user) => (
-                          <tr key={user.id} className="hover:bg-slate-900/30 transition-colors">
-                            <td className="px-5 py-3 text-slate-500 font-mono font-bold">
-                              {user.id}
-                            </td>
-                            <td className="px-5 py-3 text-slate-200 font-semibold">
-                              {user.name}
-                            </td>
-                            <td className="px-5 py-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                user.pushType === 'APNs' 
-                                  ? 'bg-blue-950/60 text-blue-400 border border-blue-500/20' 
-                                  : 'bg-orange-950/60 text-orange-400 border border-orange-500/20'
-                              }`}>
-                                {user.pushType}
-                              </span>
-                            </td>
-                            <td className="px-5 py-3 text-slate-300 max-w-[200px] truncate" title={user.categories}>
-                              {user.categories.split(',').map((cat) => (
-                                <span key={cat} className="inline-block bg-slate-800/60 text-slate-300 px-1.5 py-0.5 rounded text-[10px] font-medium mr-1 mb-1">
-                                  {cat}
-                                </span>
-                              ))}
-                            </td>
-                            <td className="px-5 py-3">
-                              {user.dndTime === '-' ? (
-                                <span className="text-slate-600 font-medium">미설정 (-)</span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 text-amber-400 font-semibold bg-amber-950/20 px-2 py-0.5 rounded-full border border-amber-500/10">
-                                  <Clock className="w-3 h-3" /> {user.dndTime}
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-5 py-3 text-slate-500 font-mono max-w-[250px] truncate" title={user.deviceId}>
-                              {user.deviceId}
-                            </td>
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead className="sticky top-0 bg-[#101726] border-b border-slate-800 text-slate-400 font-semibold z-10">
+                          <tr>
+                            <th className="px-5 py-3.5 w-16">No</th>
+                            <th className="px-5 py-3.5">이름</th>
+                            <th className="px-5 py-3.5">푸시 타입</th>
+                            <th className="px-5 py-3.5">선호 카테고리</th>
+                            <th className="px-5 py-3.5">방해 금지 시간대 (DND)</th>
+                            <th className="px-5 py-3.5">기기 토큰 ID</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60 bg-[#0a0f18]/30">
+                          {paginatedUsers.map((user) => (
+                            <tr key={user.id} className="hover:bg-slate-900/30 transition-colors">
+                              <td className="px-5 py-3 text-slate-500 font-mono font-bold">
+                                {user.id}
+                              </td>
+                              <td className="px-5 py-3 text-slate-200 font-semibold">
+                                {user.name}
+                              </td>
+                              <td className="px-5 py-3">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  user.pushType === 'APNs' 
+                                    ? 'bg-blue-950/60 text-blue-400 border border-blue-500/20' 
+                                    : 'bg-orange-950/60 text-orange-400 border border-orange-500/20'
+                                }`}>
+                                  {user.pushType}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3 text-slate-300 max-w-[200px] truncate" title={user.categories}>
+                                {user.categories.split(',').map((cat) => (
+                                  <span key={cat} className="inline-block bg-slate-800/60 text-slate-300 px-1.5 py-0.5 rounded text-[10px] font-medium mr-1 mb-1">
+                                    {cat}
+                                  </span>
+                                ))}
+                              </td>
+                              <td className="px-5 py-3">
+                                {user.dndTime === '-' ? (
+                                  <span className="text-slate-600 font-medium">미설정 (-)</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 text-amber-400 font-semibold bg-amber-950/20 px-2 py-0.5 rounded-full border border-amber-500/10">
+                                    <Clock className="w-3 h-3" /> {user.dndTime}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-5 py-3 text-slate-500 font-mono max-w-[250px] truncate" title={user.deviceId}>
+                                {user.deviceId}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                    <PaginationBar
-                      currentPage={usersCurrentPage}
-                      totalPages={usersTotalPages}
-                      totalItems={totalUsers}
-                      pageSize={usersPageSize}
-                      onPageChange={setUsersCurrentPage}
-                      onPageSizeChange={(size) => {
-                        setUsersPageSize(size);
-                        setUsersCurrentPage(1);
-                      }}
-                    />
-                  </>
-                )}
-              </div>
+                  </div>
+
+                  <PaginationBar
+                    currentPage={usersCurrentPage}
+                    totalPages={usersTotalPages}
+                    totalItems={totalUsers}
+                    pageSize={usersPageSize}
+                    onPageChange={setUsersCurrentPage}
+                    onPageSizeChange={(size) => {
+                      setUsersPageSize(size);
+                      setUsersCurrentPage(1);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </main>

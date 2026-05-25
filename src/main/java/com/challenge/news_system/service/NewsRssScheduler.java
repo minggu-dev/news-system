@@ -273,11 +273,21 @@ public class NewsRssScheduler {
                     }
 
                     // 과제 2: 사용자 기기 유형에 맞춰 푸시 발송을 시도합니다.
-                    String status;
+                    String response;
                     if ("APNs".equalsIgnoreCase(user.getPushType())) {
-                        status = pushNotificationService.sendAPNS(user.getDeviceId(), article.getArticleId(), article.getTitle());
+                        response = pushNotificationService.sendAPNS(user.getDeviceId(), article.getArticleId(), article.getTitle());
                     } else {
-                        status = pushNotificationService.sendFCM(user.getDeviceId(), article.getArticleId(), article.getTitle());
+                        response = pushNotificationService.sendFCM(user.getDeviceId(), article.getArticleId(), article.getTitle());
+                    }
+
+                    String status = "success";
+                    String failReason = null;
+                    if (response != null && response.startsWith("fail:")) {
+                        status = "fail";
+                        failReason = response.substring(5); // "fail:" 이후의 실패 사유 추출
+                    } else if (!"success".equalsIgnoreCase(response)) {
+                        status = "fail";
+                        failReason = (response != null) ? response : "Unknown";
                     }
 
                     historyList.add(PushHistory.builder()
@@ -287,8 +297,10 @@ public class NewsRssScheduler {
                             .articleCategory(article.getCategory())
                             .sentAt(LocalDateTime.now())
                             .status(status)
+                            .failReason(failReason)
                             .build());
                     sent++;
+
                 }
             }
         }
