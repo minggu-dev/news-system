@@ -338,40 +338,45 @@ public class NewsRssScheduler {
 
         log.info("Found {} failed pushes pending retry...", pendingRetries.size());
         for (PushHistory history : pendingRetries) {
-            log.info("Retrying push history ID: {} (Attempt {}/3)", history.getId(), history.getRetryCount() + 1);
-            
-            String response;
-            if ("APNs".equalsIgnoreCase(history.getPushType())) {
-                response = pushNotificationService.sendAPNS(history.getDeviceId(), "RETRY", history.getArticleTitle());
-            } else {
-                response = pushNotificationService.sendFCM(history.getDeviceId(), "RETRY", history.getArticleTitle());
-            }
-
-            int currentAttempt = history.getRetryCount() + 1;
-            history.setRetryCount(currentAttempt);
-            history.setSentAt(LocalDateTime.now()); // 발송 시각 갱신
-
-            if ("success".equalsIgnoreCase(response)) {
-                history.setStatus("success");
-                history.setCompleted(true);
-                history.setFailReason(null);
-                log.info("Push history ID: {} retry successful.", history.getId());
-            } else {
-                String failReason = "Unknown";
-                if (response != null && response.startsWith("fail:")) {
-                    failReason = response.substring(5);
-                } else if (response != null) {
-                    failReason = response;
-                }
-                history.setFailReason(failReason);
-
-                // 영구 장애로 에러가 바뀌었거나, 재시도 횟수 3회에 도달한 경우 최종 종결
-                if (!isRetryableError(failReason) || currentAttempt >= 3) {
-                    history.setCompleted(true);
-                    log.info("Push history ID: {} retry finalized as fail. (Attempts: {})", history.getId(), currentAttempt);
+            try {
+                log.info("Retrying push history ID: {} (Attempt {}/3)", history.getId(), history.getRetryCount() + 1);
+                
+                String response;
+                if ("APNs".equalsIgnoreCase(history.getPushType())) {
+                    response = pushNotificationService.sendAPNS(history.getDeviceId(), "RETRY", history.getArticleTitle());
                 } else {
-                    log.info("Push history ID: {} retry failed. Will retry again later.", history.getId());
+                    response = pushNotificationService.sendFCM(history.getDeviceId(), "RETRY", history.getArticleTitle());
                 }
+
+                int currentAttempt = history.getRetryCount() + 1;
+                history.setRetryCount(currentAttempt);
+                history.setSentAt(LocalDateTime.now()); // 발송 시각 갱신
+
+                if ("success".equalsIgnoreCase(response)) {
+                    history.setStatus("success");
+                    history.setCompleted(true);
+                    history.setFailReason(null);
+                    log.info("Push history ID: {} retry successful.", history.getId());
+                } else {
+                    String failReason = "Unknown";
+                    if (response != null && response.startsWith("fail:")) {
+                        failReason = response.substring(5);
+                    } else if (response != null) {
+                        failReason = response;
+                    }
+                    history.setFailReason(failReason);
+
+                    // 영구 장애로 에러가 바뀌었거나, 재시도 횟수 3회에 도달한 경우 최종 종결
+                    if (!isRetryableError(failReason) || currentAttempt >= 3) {
+                        history.setCompleted(true);
+                        log.warn("Push history ID: {} retry finalized as fail. (Attempts: {}, Reason: {})", history.getId(), currentAttempt, failReason);
+                    } else {
+                        log.info("Push history ID: {} retry failed. Will retry again later.", history.getId());
+                    }
+                }
+            } catch (Exception e) {
+                // 시스템 런타임 예외 발생 시 에러로 로그 기록 (예외 스택 포함)
+                log.error("Fatal error occurred during push notification retry for history ID: {}", history.getId(), e);
             }
         }
         pushHistoryRepository.saveAll(pendingRetries);
