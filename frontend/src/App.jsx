@@ -22,6 +22,25 @@ const API_BASE_URL =
     ? 'http://localhost:8080/api' 
     : '/api';
 
+const formatPubDate = (pubDateStr) => {
+  if (!pubDateStr) return '';
+  try {
+    const date = new Date(pubDateStr);
+    if (isNaN(date.getTime())) {
+      return pubDateStr;
+    }
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    const ss = String(date.getSeconds()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+  } catch (e) {
+    return pubDateStr;
+  }
+};
+
 function App() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('전체');
@@ -44,6 +63,14 @@ function App() {
   
   const [triggerSummary, setTriggerSummary] = useState(null);
   const [showTriggerModal, setShowTriggerModal] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Reset current page when category or search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchTerm]);
 
   // Reset to categories view when navigating back to articles tab
   useEffect(() => {
@@ -223,6 +250,12 @@ function App() {
     article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (article.dcCreator && article.dcCreator.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Paginated articles
+  const totalArticles = filteredArticles.length;
+  const totalPages = Math.ceil(totalArticles / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedArticles = filteredArticles.slice(startIndex, startIndex + pageSize);
 
   return (
     <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col font-sans">
@@ -430,58 +463,161 @@ function App() {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                        {filteredArticles.map((article) => (
-                          <div
-                            key={article.articleId}
-                            onClick={() => handleArticleClick(article)}
-                            className={`group relative flex flex-col justify-between p-5 rounded-2xl border transition-all duration-300 cursor-pointer ${
-                              article.read
-                                ? 'bg-[#0b101b]/40 border-slate-900/60 opacity-65 hover:opacity-90 hover:border-slate-800'
-                                : 'bg-gradient-to-b from-[#111727] to-[#0c1220] border-slate-800 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/5'
-                            }`}
-                          >
-                            <div>
-                              {/* Card Header Info */}
-                              <div className="flex items-center justify-between gap-2 mb-3">
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800/80 text-cyan-400 uppercase">
-                                  {article.category}
-                                </span>
-                                
-                                {!article.read ? (
-                                  <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    읽지 않음
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] text-slate-500 font-medium">
-                                    읽음
-                                  </span>
-                                )}
-                              </div>
+                      <div className="flex flex-col gap-6">
+                        {/* Row Layout List */}
+                        <div className="flex flex-col gap-4">
+                          {paginatedArticles.map((article) => (
+                            <div
+                              key={article.articleId}
+                              onClick={() => handleArticleClick(article)}
+                              className={`group relative flex flex-row items-center gap-4 p-4 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                                article.read
+                                  ? 'bg-[#0b101b]/40 border-slate-900/60 opacity-65 hover:opacity-90 hover:border-slate-800'
+                                  : 'bg-gradient-to-b from-[#111727] to-[#0c1220] border-slate-800 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/5'
+                              }`}
+                            >
+                              {/* Thumbnail Image if available */}
+                              {article.imageUrl && (
+                                <div className="w-20 h-20 md:w-28 md:h-20 rounded-lg overflow-hidden border border-slate-800 shrink-0 bg-slate-950/40">
+                                  <img
+                                    src={article.imageUrl}
+                                    alt={article.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                </div>
+                              )}
 
-                              {/* Title */}
-                              <h3 className={`text-sm font-semibold line-clamp-2 mb-3 transition-colors ${
-                                article.read ? 'text-slate-400' : 'text-slate-200 group-hover:text-cyan-400'
-                              }`}>
-                                {article.title}
-                              </h3>
+                              {/* Text & Metadata Content */}
+                              <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
+                                <div>
+                                  {/* Row Header Info */}
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800/80 text-cyan-400 uppercase">
+                                      {article.category}
+                                    </span>
+                                    
+                                    {!article.read ? (
+                                      <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                        읽지 않음
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-slate-500 font-medium">
+                                        읽음
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Title */}
+                                  <h3 className={`text-sm md:text-base font-semibold line-clamp-1 mb-1 transition-colors ${
+                                    article.read ? 'text-slate-400' : 'text-slate-200 group-hover:text-cyan-400'
+                                  }`} title={article.title}>
+                                    {article.title}
+                                  </h3>
+                                </div>
+
+                                {/* Row Footer Info */}
+                                <div className="flex items-center gap-4 text-xs text-slate-500 mt-2">
+                                  <span className="truncate max-w-[100px]">{article.dcCreator || '연합뉴스'}</span>
+                                  <span className="w-1 h-1 rounded-full bg-slate-800" />
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>
+                                      {formatPubDate(article.pubDate)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Pagination Bar */}
+                        {totalPages > 0 && (
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[#0a0f18]/60 border border-slate-800/80 rounded-2xl text-xs text-slate-400">
+                            {/* Page Size Selection */}
+                            <div className="flex items-center gap-2">
+                              <span>페이지당 표시:</span>
+                              <select
+                                value={pageSize}
+                                onChange={(e) => {
+                                  setPageSize(Number(e.target.value));
+                                  setCurrentPage(1);
+                                }}
+                                className="bg-[#101726] border border-slate-800 text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500/60 cursor-pointer"
+                              >
+                                <option value={5}>5개씩</option>
+                                <option value={10}>10개씩</option>
+                                <option value={20}>20개씩</option>
+                                <option value={50}>50개씩</option>
+                              </select>
+                              <span className="text-slate-600">|</span>
+                              <span>전체 <span className="font-semibold text-cyan-400">{totalArticles}</span>건</span>
                             </div>
 
-                            {/* Card Footer Info */}
-                            <div className="mt-4 pt-3 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
-                              <div className="flex items-center gap-1">
-                                <span className="truncate max-w-[100px]">{article.dcCreator || '연합뉴스'}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                <span>
-                                  {article.pubDate ? article.pubDate.substring(5, 16) : ''}
-                                </span>
-                              </div>
+                            {/* Pagination Navigation */}
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage === 1}
+                                className="px-2.5 py-1.5 rounded-lg bg-[#101726] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 border border-slate-800 transition-colors"
+                              >
+                                처음
+                              </button>
+                              
+                              <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="px-2.5 py-1.5 rounded-lg bg-[#101726] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 border border-slate-800 transition-colors"
+                              >
+                                이전
+                              </button>
+
+                              {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
+                                let pageNum = currentPage;
+                                if (currentPage <= 3) {
+                                  pageNum = idx + 1;
+                                } else if (currentPage >= totalPages - 2) {
+                                  pageNum = totalPages - 4 + idx;
+                                } else {
+                                  pageNum = currentPage - 2 + idx;
+                                }
+                                
+                                if (pageNum < 1 || pageNum > totalPages) return null;
+
+                                return (
+                                  <button
+                                    key={pageNum}
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`w-8 h-8 rounded-lg font-semibold border transition-all ${
+                                      currentPage === pageNum
+                                        ? 'bg-gradient-to-r from-cyan-500 to-blue-600 border-cyan-400 text-white shadow-md shadow-cyan-500/10'
+                                        : 'bg-[#101726] hover:bg-slate-800 border-slate-800 text-slate-400 hover:text-white'
+                                    }`}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                );
+                              })}
+
+                              <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-2.5 py-1.5 rounded-lg bg-[#101726] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 border border-slate-800 transition-colors"
+                              >
+                                다음
+                              </button>
+
+                              <button
+                                onClick={() => setCurrentPage(totalPages)}
+                                disabled={currentPage === totalPages}
+                                className="px-2.5 py-1.5 rounded-lg bg-[#101726] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 border border-slate-800 transition-colors"
+                              >
+                                끝
+                              </button>
                             </div>
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
                   </div>
@@ -752,7 +888,7 @@ function App() {
             {/* Info footer */}
             <div className="p-4 bg-[#0a0f18] border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
               <span>작성자: {selectedArticle.dcCreator || '연합뉴스'}</span>
-              <span>수집 발행시각: {selectedArticle.pubDate}</span>
+              <span>수집 발행시각: {formatPubDate(selectedArticle.pubDate)}</span>
             </div>
           </div>
         </div>

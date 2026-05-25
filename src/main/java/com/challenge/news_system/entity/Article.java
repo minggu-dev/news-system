@@ -39,6 +39,9 @@ public class Article {
     @Column(name = "parsed_pub_date")
     private LocalDateTime parsedPubDate; // Used for sorting and retention policy (1,000 max)
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl; // Thumbnail image URL (extracted from media:content)
+
     @Column(nullable = false, length = 20)
     private String category; // e.g. "정치", "북한", "경제", "산업", "사회"
 

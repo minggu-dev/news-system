@@ -170,6 +170,19 @@ public class NewsRssScheduler {
 
                     LocalDateTime parsedPubDate = parsePubDate(pubDate);
 
+                    String imageUrl = null;
+                    NodeList mediaList = element.getElementsByTagName("media:content");
+                    if (mediaList == null || mediaList.getLength() == 0) {
+                        mediaList = element.getElementsByTagName("content"); // fallback
+                    }
+                    if (mediaList != null && mediaList.getLength() > 0) {
+                        Element mediaElement = (Element) mediaList.item(0);
+                        imageUrl = mediaElement.getAttribute("url");
+                        if (imageUrl != null && imageUrl.trim().isEmpty()) {
+                            imageUrl = null;
+                        }
+                    }
+
                     articles.add(Article.builder()
                             .articleId(articleId)
                             .title(title)
@@ -178,6 +191,7 @@ public class NewsRssScheduler {
                             .pubDate(pubDate)
                             .parsedPubDate(parsedPubDate)
                             .category(category)
+                            .imageUrl(imageUrl)
                             .isRead(false)
                             .build());
                 }
