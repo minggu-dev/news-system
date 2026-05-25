@@ -46,5 +46,14 @@ public class PushHistory {
 
     @Column(name = "fail_reason", length = 100)
     private String failReason; // 과제 2: 푸시 발송 실패 사유
+
+    @Builder.Default
+    @Column(name = "is_completed", nullable = false)
+    private boolean isCompleted = false; // 과제 2: 발송 작업 최종 완료 여부
+
+    @Builder.Default
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount = 0; // 과제 2: 푸시 발송 재시도 횟수
 }
+
 

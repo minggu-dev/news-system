@@ -41,6 +41,24 @@ const formatPubDate = (pubDateStr) => {
   }
 };
 
+const FAIL_REASON_MAP = {
+  // APNs 실패 사유 번역
+  'BadDeviceToken': '잘못된 기기 토큰',
+  'Unregistered': '등록 해제된 기기',
+  'DeviceTokenNotForTopic': '앱 토픽 불일치',
+  'ExpiredProviderToken': '제공자 인증 토큰 만료',
+  
+  // FCM 실패 사유 번역
+  'InvalidRegistration': '잘못된 기기 등록 ID',
+  'Unavailable': 'FCM 서비스 일시적 사용 불가',
+  'InternalServerError': 'FCM 내부 서버 오류',
+  'DeviceMessageRateLimitExceeded': '기기당 발송 제한 초과',
+  
+  // 공통 오류 번역
+  'UnknownException': '알 수 없는 예외 발생',
+  'Unknown': '알 수 없는 오류'
+};
+
 function App() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('전체');
@@ -660,15 +678,27 @@ function App() {
                                   <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
                                     <CheckCircle className="w-3.5 h-3.5" /> 성공
                                   </span>
+                                ) : !item.isCompleted ? (
+                                  <div className="flex flex-col">
+                                    <span className="inline-flex items-center gap-1 text-amber-400 font-semibold">
+                                      <RefreshCw className="w-3 h-3 animate-spin text-amber-400" /> 재시도 중 ({item.retryCount || 1}/3)
+                                    </span>
+                                    {/* 과제 2: 푸시 실패 시 상세 실패 사유를 한국어로 번역하여 하단에 작게 표시합니다 */}
+                                    {item.failReason && (
+                                      <span className="text-[10px] text-amber-500/80 font-medium mt-0.5 pl-[16px]" title={item.failReason}>
+                                        {FAIL_REASON_MAP[item.failReason] || item.failReason}
+                                      </span>
+                                    )}
+                                  </div>
                                 ) : (
                                   <div className="flex flex-col">
                                     <span className="inline-flex items-center gap-1 text-rose-400 font-semibold">
                                       <AlertCircle className="w-3.5 h-3.5" /> 실패
                                     </span>
-                                    {/* 과제 2: 푸시 실패 시 상세 실패 사유를 하단에 작게 표시합니다 */}
+                                    {/* 과제 2: 푸시 실패 시 상세 실패 사유를 한국어로 번역하여 하단에 작게 표시합니다 */}
                                     {item.failReason && (
-                                      <span className="text-[10px] text-rose-500/80 font-mono mt-0.5 pl-[18px]" title={item.failReason}>
-                                        {item.failReason}
+                                      <span className="text-[10px] text-rose-500/80 font-medium mt-0.5 pl-[18px]" title={item.failReason}>
+                                        {FAIL_REASON_MAP[item.failReason] || item.failReason}
                                       </span>
                                     )}
                                   </div>

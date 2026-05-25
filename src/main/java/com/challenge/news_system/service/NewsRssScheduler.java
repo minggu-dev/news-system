@@ -282,12 +282,21 @@ public class NewsRssScheduler {
 
                     String status = "success";
                     String failReason = null;
+                    boolean isCompleted = true;
+                    int retryCount = 0;
+
                     if (response != null && response.startsWith("fail:")) {
                         status = "fail";
                         failReason = response.substring(5); // "fail:" 이후의 실패 사유 추출
+                        if (isRetryableError(failReason)) {
+                            isCompleted = false;
+                            retryCount = 1;
+                        }
                     } else if (!"success".equalsIgnoreCase(response)) {
                         status = "fail";
                         failReason = (response != null) ? response : "Unknown";
+                        isCompleted = false;
+                        retryCount = 1;
                     }
 
                     historyList.add(PushHistory.builder()
@@ -298,6 +307,8 @@ public class NewsRssScheduler {
                             .sentAt(LocalDateTime.now())
                             .status(status)
                             .failReason(failReason)
+                            .isCompleted(isCompleted)
+                            .retryCount(retryCount)
                             .build());
                     sent++;
 
@@ -315,6 +326,70 @@ public class NewsRssScheduler {
         result.put("skippedDnd", skippedDnd);
         return result;
     }
+
+    // 과제 2: 1분마다 발송 실패한 재시도 대상(status='fail', isCompleted=false)을 모아 재발송을 시도합니다.
+    @Scheduled(fixedDelay = 60000)
+    @Transactional
+    public void retryFailedPushes() {
+        List<PushHistory> pendingRetries = pushHistoryRepository.findByStatusAndIsCompletedFalse("fail");
+        if (pendingRetries.isEmpty()) {
+            return;
+        }
+
+        log.info("Found {} failed pushes pending retry...", pendingRetries.size());
+        for (PushHistory history : pendingRetries) {
+            log.info("Retrying push history ID: {} (Attempt {}/3)", history.getId(), history.getRetryCount() + 1);
+            
+            String response;
+            if ("APNs".equalsIgnoreCase(history.getPushType())) {
+                response = pushNotificationService.sendAPNS(history.getDeviceId(), "RETRY", history.getArticleTitle());
+            } else {
+                response = pushNotificationService.sendFCM(history.getDeviceId(), "RETRY", history.getArticleTitle());
+            }
+
+            int currentAttempt = history.getRetryCount() + 1;
+            history.setRetryCount(currentAttempt);
+            history.setSentAt(LocalDateTime.now()); // 발송 시각 갱신
+
+            if ("success".equalsIgnoreCase(response)) {
+                history.setStatus("success");
+                history.setCompleted(true);
+                history.setFailReason(null);
+                log.info("Push history ID: {} retry successful.", history.getId());
+            } else {
+                String failReason = "Unknown";
+                if (response != null && response.startsWith("fail:")) {
+                    failReason = response.substring(5);
+                } else if (response != null) {
+                    failReason = response;
+                }
+                history.setFailReason(failReason);
+
+                // 영구 장애로 에러가 바뀌었거나, 재시도 횟수 3회에 도달한 경우 최종 종결
+                if (!isRetryableError(failReason) || currentAttempt >= 3) {
+                    history.setCompleted(true);
+                    log.info("Push history ID: {} retry finalized as fail. (Attempts: {})", history.getId(), currentAttempt);
+                } else {
+                    log.info("Push history ID: {} retry failed. Will retry again later.", history.getId());
+                }
+            }
+        }
+        pushHistoryRepository.saveAll(pendingRetries);
+    }
+
+    private boolean isRetryableError(String failReason) {
+        if (failReason == null) return true;
+        // 재시도 가능한 실패 사유 리스트
+        List<String> retryableReasons = List.of(
+            "Unavailable", 
+            "InternalServerError", 
+            "DeviceMessageRateLimitExceeded", 
+            "UnknownException", 
+            "Unknown"
+        );
+        return retryableReasons.contains(failReason);
+    }
+
 
     private boolean isUserSubscribed(User user, String category) {
         if (user.getCategories() == null) return false;
