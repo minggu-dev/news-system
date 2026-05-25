@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Newspaper, 
   Send, 
@@ -9,13 +9,12 @@ import {
   Search, 
   X, 
   ChevronRight, 
-  BookOpen, 
-  Clock, 
-  ExternalLink,
   Info,
-  Sliders,
   Filter
 } from 'lucide-react';
+import ArticleCard from './components/ArticleCard';
+import ArticleDrawer from './components/ArticleDrawer';
+import PaginationBar from './components/PaginationBar';
 
 const API_BASE_URL = 
   window.location.port === '5173' || window.location.port === '3000' 
@@ -36,7 +35,7 @@ const formatPubDate = (pubDateStr) => {
     const min = String(date.getMinutes()).padStart(2, '0');
     const ss = String(date.getSeconds()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
-  } catch (e) {
+  } catch {
     return pubDateStr;
   }
 };
@@ -45,11 +44,13 @@ function App() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [articles, setArticles] = useState([]);
+  const [articleTotalPages, setArticleTotalPages] = useState(0);
+  const [articleTotalElements, setArticleTotalElements] = useState(0);
   const [pushHistory, setPushHistory] = useState([]);
   const [historyPage, setHistoryPage] = useState(0);
   const [historyTotalPages, setHistoryTotalPages] = useState(0);
   const [historyTotalElements, setHistoryTotalElements] = useState(0);
-  const historyPageSize = 20;
+  const [historyPageSize, setHistoryPageSize] = useState(20);
   const [users, setUsers] = useState([]);
   const [currentView, setCurrentView] = useState('categories'); // 'categories' | 'list'
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -57,6 +58,10 @@ function App() {
   const [loadingArticles, setLoadingArticles] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [triggerLoading, setTriggerLoading] = useState(false);
+  const [categoriesError, setCategoriesError] = useState('');
+  const [articlesError, setArticlesError] = useState('');
+  const [historyError, setHistoryError] = useState('');
+  const [usersError, setUsersError] = useState('');
   
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('articles'); // 'articles' | 'history' | 'users'
@@ -66,6 +71,8 @@ function App() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [usersCurrentPage, setUsersCurrentPage] = useState(1);
+  const [usersPageSize, setUsersPageSize] = useState(10);
 
   // Reset current page when category or search term changes
   useEffect(() => {
@@ -130,70 +137,100 @@ function App() {
   useEffect(() => {
     fetchCategories();
     fetchUsers();
-    fetchArticles(selectedCategory);
     fetchPushHistory();
   }, []);
 
-  // Fetch articles when category changes
+  // Fetch articles when category, search, page, or page size changes
   useEffect(() => {
-    fetchArticles(selectedCategory);
-  }, [selectedCategory]);
+    fetchArticles(selectedCategory, currentPage - 1, pageSize, searchTerm);
+  }, [selectedCategory, currentPage, pageSize, searchTerm]);
 
   const fetchCategories = async () => {
+    setCategoriesError('');
     try {
       const res = await fetch(`${API_BASE_URL}/categories`);
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(['전체', ...data]);
+      if (!res.ok) {
+        throw new Error(`Category API failed with ${res.status}`);
       }
+      
+      const data = await res.json();
+      setCategories(['전체', ...data]);
     } catch (err) {
       console.error('Failed to fetch categories:', err);
+      setCategoriesError('카테고리 목록을 불러오지 못했습니다. 서버 상태를 확인한 뒤 다시 시도하세요.');
     }
   };
 
   const fetchUsers = async () => {
+    setUsersError('');
     try {
       const res = await fetch(`${API_BASE_URL}/users`);
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data);
+      if (!res.ok) {
+        throw new Error(`Users API failed with ${res.status}`);
       }
+      
+      const data = await res.json();
+      setUsers(data);
     } catch (err) {
       console.error('Failed to fetch users:', err);
+      setUsersError('사용자 목록을 불러오지 못했습니다. 서버 상태를 확인한 뒤 다시 시도하세요.');
     }
   };
 
-  const fetchArticles = async (category) => {
+  const fetchArticles = async (category, page = 0, size = pageSize, keyword = searchTerm) => {
     setLoadingArticles(true);
+    setArticlesError('');
     try {
-      const url = category === '전체' 
-        ? `${API_BASE_URL}/articles` 
-        : `${API_BASE_URL}/articles?category=${encodeURIComponent(category)}`;
-      const res = await fetch(url);
+      const params = new URLSearchParams({
+        page: String(page),
+        size: String(size),
+      });
+
+      if (category && category !== '전체') {
+        params.set('category', category);
+      }
+
+      if (keyword.trim()) {
+        params.set('search', keyword.trim());
+      }
+
+      const res = await fetch(`${API_BASE_URL}/articles?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setArticles(data);
+        setArticles(data.content || []);
+        setArticleTotalPages(data.totalPages || 0);
+        setArticleTotalElements(data.totalElements || 0);
+      } else {
+        throw new Error(`Article API failed with ${res.status}`);
       }
     } catch (err) {
       console.error('Failed to fetch articles:', err);
+      setArticles([]);
+      setArticleTotalPages(0);
+      setArticleTotalElements(0);
+      setArticlesError('기사 목록을 불러오지 못했습니다. 서버 연결 또는 API 응답을 확인한 뒤 다시 시도하세요.');
     } finally {
       setLoadingArticles(false);
     }
   };
 
-  const fetchPushHistory = async (page = 0) => {
+  const fetchPushHistory = async (page = 0, size = historyPageSize) => {
     setLoadingHistory(true);
+    setHistoryError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/push-history?page=${page}&size=${historyPageSize}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPushHistory(data.content || []);
-        setHistoryTotalPages(data.totalPages || 0);
-        setHistoryTotalElements(data.totalElements || 0);
-        setHistoryPage(page);
+      const res = await fetch(`${API_BASE_URL}/push-history?page=${page}&size=${size}`);
+      if (!res.ok) {
+        throw new Error(`Push history API failed with ${res.status}`);
       }
+
+      const data = await res.json();
+      setPushHistory(data.content || []);
+      setHistoryTotalPages(data.totalPages || 0);
+      setHistoryTotalElements(data.totalElements || 0);
+      setHistoryPage(page);
     } catch (err) {
       console.error('Failed to fetch push history:', err);
+      setHistoryError('푸시 발송 이력을 불러오지 못했습니다. 서버 상태를 확인한 뒤 다시 시도하세요.');
     } finally {
       setLoadingHistory(false);
     }
@@ -245,17 +282,13 @@ function App() {
     }
   };
 
-  // Filter articles by search term
-  const filteredArticles = articles.filter(article => 
-    article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (article.dcCreator && article.dcCreator.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  // Paginated articles
-  const totalArticles = filteredArticles.length;
-  const totalPages = Math.ceil(totalArticles / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedArticles = filteredArticles.slice(startIndex, startIndex + pageSize);
+  const totalArticles = articleTotalElements;
+  const totalPages = articleTotalPages;
+  const paginatedArticles = articles;
+  const totalUsers = users.length;
+  const usersTotalPages = Math.ceil(totalUsers / usersPageSize);
+  const usersStartIndex = (usersCurrentPage - 1) * usersPageSize;
+  const paginatedUsers = users.slice(usersStartIndex, usersStartIndex + usersPageSize);
 
   return (
     <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col font-sans">
@@ -334,7 +367,10 @@ function App() {
               {categories.map((cat) => (
                 <button
                   key={cat}
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => {
+                    setCurrentPage(1);
+                    setSelectedCategory(cat);
+                  }}
                   className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-all duration-200 flex items-center justify-between ${
                     selectedCategory === cat
                       ? 'bg-gradient-to-r from-cyan-950 to-blue-950/60 text-cyan-300 font-semibold border border-cyan-500/30'
@@ -377,6 +413,19 @@ function App() {
                       연합뉴스에서 제공하는 실시간 분야별 뉴스 속보 기사를 열람할 수 있습니다.
                     </p>
                   </div>
+
+                  {categoriesError && (
+                    <div className="w-full max-w-xl mb-6 rounded-2xl border border-rose-500/20 bg-rose-950/20 p-4 text-center">
+                      <h3 className="text-sm font-semibold text-rose-300">카테고리 API 오류</h3>
+                      <p className="text-xs text-slate-400 mt-1">{categoriesError}</p>
+                      <button
+                        onClick={fetchCategories}
+                        className="mt-3 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition-colors"
+                      >
+                        다시 시도
+                      </button>
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
                     {['전체', '정치', '북한', '경제', '산업', '사회'].map(cat => {
@@ -385,6 +434,7 @@ function App() {
                         <div
                           key={cat}
                           onClick={() => {
+                            setCurrentPage(1);
                             setSelectedCategory(cat);
                             setCurrentView('list');
                           }}
@@ -427,13 +477,19 @@ function App() {
                       <input
                         type="text"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1);
+                        }}
                         placeholder={`${selectedCategory} 기사 제목 또는 작성자 검색...`}
                         className="w-full bg-[#101726] border border-slate-800 focus:border-cyan-500/60 focus:outline-none rounded-xl py-2 pl-10 pr-4 text-sm text-slate-200 placeholder:text-slate-500 transition-all duration-200"
                       />
                       {searchTerm && (
                         <button 
-                          onClick={() => setSearchTerm('')}
+                          onClick={() => {
+                            setSearchTerm('');
+                            setCurrentPage(1);
+                          }}
                           className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-700/50"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -441,7 +497,7 @@ function App() {
                       )}
                     </div>
                     <div className="text-xs text-slate-400 ml-auto">
-                      선택 분야: <span className="font-bold text-cyan-400">{selectedCategory}</span> | 조회: <span className="font-semibold text-cyan-400">{filteredArticles.length}</span>건
+                      선택 분야: <span className="font-bold text-cyan-400">{selectedCategory}</span> | 조회: <span className="font-semibold text-cyan-400">{totalArticles}</span>건
                     </div>
                   </div>
 
@@ -452,7 +508,21 @@ function App() {
                         <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
                         <p className="text-sm text-slate-400">뉴스 기사를 가져오는 중입니다...</p>
                       </div>
-                    ) : filteredArticles.length === 0 ? (
+                    ) : articlesError ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                        <div className="w-16 h-16 rounded-full bg-rose-950/30 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-4">
+                          <AlertCircle className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-base font-semibold text-slate-200">기사 목록을 불러오지 못했습니다</h3>
+                        <p className="text-sm text-slate-500 mt-1 max-w-sm">{articlesError}</p>
+                        <button
+                          onClick={() => fetchArticles(selectedCategory, currentPage - 1, pageSize, searchTerm)}
+                          className="mt-4 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors"
+                        >
+                          다시 시도
+                        </button>
+                      </div>
+                    ) : paginatedArticles.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-8">
                         <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-4">
                           <Newspaper className="w-8 h-8" />
@@ -467,157 +537,27 @@ function App() {
                         {/* Row Layout List */}
                         <div className="flex flex-col gap-4">
                           {paginatedArticles.map((article) => (
-                            <div
+                            <ArticleCard
                               key={article.articleId}
-                              onClick={() => handleArticleClick(article)}
-                              className={`group relative flex flex-row items-center gap-4 p-4 rounded-2xl border transition-all duration-300 cursor-pointer ${
-                                article.read
-                                  ? 'bg-[#0b101b]/40 border-slate-900/60 opacity-65 hover:opacity-90 hover:border-slate-800'
-                                  : 'bg-gradient-to-b from-[#111727] to-[#0c1220] border-slate-800 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/5'
-                              }`}
-                            >
-                              {/* Thumbnail Image if available */}
-                              {article.imageUrl && (
-                                <div className="w-20 h-20 md:w-28 md:h-20 rounded-lg overflow-hidden border border-slate-800 shrink-0 bg-slate-950/40">
-                                  <img
-                                    src={article.imageUrl}
-                                    alt={article.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                  />
-                                </div>
-                              )}
-
-                              {/* Text & Metadata Content */}
-                              <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
-                                <div>
-                                  {/* Row Header Info */}
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800/80 text-cyan-400 uppercase">
-                                      {article.category}
-                                    </span>
-                                    
-                                    {!article.read ? (
-                                      <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                        읽지 않음
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] text-slate-500 font-medium">
-                                        읽음
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {/* Title */}
-                                  <h3 className={`text-sm md:text-base font-semibold line-clamp-1 mb-1 transition-colors ${
-                                    article.read ? 'text-slate-400' : 'text-slate-200 group-hover:text-cyan-400'
-                                  }`} title={article.title}>
-                                    {article.title}
-                                  </h3>
-                                </div>
-
-                                {/* Row Footer Info */}
-                                <div className="flex items-center gap-4 text-xs text-slate-500 mt-2">
-                                  <span className="truncate max-w-[100px]">{article.dcCreator || '연합뉴스'}</span>
-                                  <span className="w-1 h-1 rounded-full bg-slate-800" />
-                                  <div className="flex items-center gap-1.5">
-                                    <Clock className="w-3.5 h-3.5 text-slate-500" />
-                                    <span>
-                                      {formatPubDate(article.pubDate)}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
+                              article={article}
+                              onClick={handleArticleClick}
+                              formatPubDate={formatPubDate}
+                            />
                           ))}
                         </div>
 
-                        {/* Pagination Bar */}
-                        {totalPages > 0 && (
-                          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[#0a0f18]/60 border border-slate-800/80 rounded-2xl text-xs text-slate-400">
-                            {/* Page Size Selection */}
-                            <div className="flex items-center gap-2">
-                              <span>페이지당 표시:</span>
-                              <select
-                                value={pageSize}
-                                onChange={(e) => {
-                                  setPageSize(Number(e.target.value));
-                                  setCurrentPage(1);
-                                }}
-                                className="bg-[#101726] border border-slate-800 text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500/60 cursor-pointer"
-                              >
-                                <option value={5}>5개씩</option>
-                                <option value={10}>10개씩</option>
-                                <option value={20}>20개씩</option>
-                                <option value={50}>50개씩</option>
-                              </select>
-                              <span className="text-slate-600">|</span>
-                              <span>전체 <span className="font-semibold text-cyan-400">{totalArticles}</span>건</span>
-                            </div>
-
-                            {/* Pagination Navigation */}
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => setCurrentPage(1)}
-                                disabled={currentPage === 1}
-                                className="px-2.5 py-1.5 rounded-lg bg-[#101726] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 border border-slate-800 transition-colors"
-                              >
-                                처음
-                              </button>
-                              
-                              <button
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                disabled={currentPage === 1}
-                                className="px-2.5 py-1.5 rounded-lg bg-[#101726] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 border border-slate-800 transition-colors"
-                              >
-                                이전
-                              </button>
-
-                              {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
-                                let pageNum = currentPage;
-                                if (currentPage <= 3) {
-                                  pageNum = idx + 1;
-                                } else if (currentPage >= totalPages - 2) {
-                                  pageNum = totalPages - 4 + idx;
-                                } else {
-                                  pageNum = currentPage - 2 + idx;
-                                }
-                                
-                                if (pageNum < 1 || pageNum > totalPages) return null;
-
-                                return (
-                                  <button
-                                    key={pageNum}
-                                    onClick={() => setCurrentPage(pageNum)}
-                                    className={`w-8 h-8 rounded-lg font-semibold border transition-all ${
-                                      currentPage === pageNum
-                                        ? 'bg-gradient-to-r from-cyan-500 to-blue-600 border-cyan-400 text-white shadow-md shadow-cyan-500/10'
-                                        : 'bg-[#101726] hover:bg-slate-800 border-slate-800 text-slate-400 hover:text-white'
-                                    }`}
-                                  >
-                                    {pageNum}
-                                  </button>
-                                );
-                              })}
-
-                              <button
-                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                disabled={currentPage === totalPages}
-                                className="px-2.5 py-1.5 rounded-lg bg-[#101726] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 border border-slate-800 transition-colors"
-                              >
-                                다음
-                              </button>
-
-                              <button
-                                onClick={() => setCurrentPage(totalPages)}
-                                disabled={currentPage === totalPages}
-                                className="px-2.5 py-1.5 rounded-lg bg-[#101726] hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 border border-slate-800 transition-colors"
-                              >
-                                끝
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                        <PaginationBar
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          totalItems={totalArticles}
+                          pageSize={pageSize}
+                          onPageChange={setCurrentPage}
+                          onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                          }}
+                          disabled={loadingArticles}
+                        />
                       </div>
                     )}
                   </div>
@@ -715,31 +655,18 @@ function App() {
                       </table>
                     </div>
 
-                    {/* Pagination Controls */}
-                    {pushHistory.length > 0 && (
-                      <div className="p-4 bg-[#101726]/60 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
-                        <div>
-                          전체 <span className="font-semibold text-cyan-400">{historyTotalElements}</span>건 중 
-                          현재 페이지: <span className="font-semibold text-white">{historyPage + 1}</span> / <span className="font-semibold text-white">{historyTotalPages || 1}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => fetchPushHistory(historyPage - 1)}
-                            disabled={historyPage === 0 || loadingHistory}
-                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            이전
-                          </button>
-                          <button
-                            onClick={() => fetchPushHistory(historyPage + 1)}
-                            disabled={historyPage >= historyTotalPages - 1 || loadingHistory}
-                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            다음
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    <PaginationBar
+                      currentPage={historyPage + 1}
+                      totalPages={historyTotalPages}
+                      totalItems={historyTotalElements}
+                      pageSize={historyPageSize}
+                      onPageChange={(page) => fetchPushHistory(page - 1)}
+                      onPageSizeChange={(size) => {
+                        setHistoryPageSize(size);
+                        fetchPushHistory(0, size);
+                      }}
+                      disabled={loadingHistory}
+                    />
                   </>
                 )}
               </div>
@@ -765,7 +692,8 @@ function App() {
                     <p className="text-sm text-slate-400">사용자 목록을 불러오는 중입니다...</p>
                   </div>
                 ) : (
-                  <div className="flex-1 overflow-x-auto">
+                  <>
+                    <div className="flex-1 overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead className="sticky top-0 bg-[#101726] border-b border-slate-800 text-slate-400 font-semibold z-10">
                         <tr>
@@ -778,7 +706,7 @@ function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60 bg-[#0a0f18]/30">
-                        {users.map((user) => (
+                        {paginatedUsers.map((user) => (
                           <tr key={user.id} className="hover:bg-slate-900/30 transition-colors">
                             <td className="px-5 py-3 text-slate-500 font-mono font-bold">
                               {user.id}
@@ -818,7 +746,19 @@ function App() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                    </div>
+                    <PaginationBar
+                      currentPage={usersCurrentPage}
+                      totalPages={usersTotalPages}
+                      totalItems={totalUsers}
+                      pageSize={usersPageSize}
+                      onPageChange={setUsersCurrentPage}
+                      onPageSizeChange={(size) => {
+                        setUsersPageSize(size);
+                        setUsersCurrentPage(1);
+                      }}
+                    />
+                  </>
                 )}
               </div>
             </div>

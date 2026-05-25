@@ -32,3 +32,12 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.5);
 }
+
+/* Hide scrollbars for the sidebar to prevent layout shifting and maintain visual consistency */
+aside, aside * {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+aside::-webkit-scrollbar, aside *::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari and Opera */
+}
