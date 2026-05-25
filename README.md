@@ -11,8 +11,8 @@
 
 | 문서 | 설명 |
 | :--- | :--- |
-| [과제 1. 뉴스 기사 열람 웹 애플리케이션](docs/assignment-1-news-viewer.md) | 카테고리 선택, 기사 목록, 원문 보기, 읽음 상태, 페이징, 오류 처리 등 과제 1 상세 구현 |
-| [과제 2. 뉴스 기사 푸시 전송 백엔드 시스템](docs/assignment-2-push-system.md) | RSS 수집, 사용자 매칭, DND, 푸시 발송 이력 관련 문서 자리 |
+| [과제 1. 뉴스 기사 열람 웹 애플리케이션](readme/task1/) | 카테고리 선택, 기사 목록, 원문 보기, 읽음 상태, 페이징, 오류 처리 등 과제 1 상세 구현 |
+| [과제 2. 뉴스 기사 푸시 전송 백엔드 시스템](readme/task2/) | RSS 수집, 사용자 매칭, DND, 푸시 발송 이력 관련 문서 자리 |
 
 ## 기술 스택
 
@@ -48,9 +48,11 @@ news-system/
 │  ├─ users.csv
 │  ├─ application.properties
 │  └─ static/
-├─ docs/
-│  ├─ assignment-1-news-viewer.md
-│  └─ assignment-2-push-system.md
+├─ readme/
+│  ├─ task1/
+│  │  └─ README.md
+│  └─ task2/
+│     └─ README.md
 ├─ build.gradle
 ├─ Jenkinsfile
 └─ README.md
