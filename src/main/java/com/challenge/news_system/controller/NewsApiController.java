@@ -39,14 +39,21 @@ public class NewsApiController {
     }
 
     /**
-     * Get articles. Optional category filter.
+     * Get paged articles. Optional category and search filters.
      */
     @GetMapping("/articles")
-    public ResponseEntity<List<Article>> getArticles(@RequestParam(value = "category", required = false) String category) {
-        if (category != null && !category.trim().isEmpty()) {
-            return ResponseEntity.ok(articleRepository.findByCategoryOrderByParsedPubDateDesc(category.trim()));
-        }
-        return ResponseEntity.ok(articleRepository.findAllByOrderByParsedPubDateDesc());
+    public ResponseEntity<Page<Article>> getArticles(
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        Pageable pageable = PageRequest.of(safePage, safeSize);
+        String categoryFilter = category == null || category.trim().isEmpty() ? null : category.trim();
+        String searchFilter = search == null || search.trim().isEmpty() ? null : search.trim();
+
+        return ResponseEntity.ok(articleRepository.searchArticles(categoryFilter, searchFilter, pageable));
     }
 
     /**
