@@ -113,6 +113,8 @@
 
 - `frontend/src/App.jsx`
 
+![푸시 발송 이력 및 실시간 모니터링 화면](../../screenshots/task2/push-history.png)
+
 ## 4. 프론트엔드 컴포넌트 구조
 
 주요 UI 및 테이블 조작은 다음 컴포넌트들을 활용해 구현되었습니다.
