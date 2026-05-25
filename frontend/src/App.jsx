@@ -33,6 +33,17 @@ function App() {
   const historyPageSize = 20;
   const [users, setUsers] = useState([]);
   const [currentView, setCurrentView] = useState('categories'); // 'categories' | 'list'
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  
+  const [loadingArticles, setLoadingArticles] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [triggerLoading, setTriggerLoading] = useState(false);
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('articles'); // 'articles' | 'history' | 'users'
+  
+  const [triggerSummary, setTriggerSummary] = useState(null);
+  const [showTriggerModal, setShowTriggerModal] = useState(false);
 
   // Reset to categories view when navigating back to articles tab
   useEffect(() => {
@@ -87,17 +98,6 @@ function App() {
         };
     }
   };
-  const [selectedArticle, setSelectedArticle] = useState(null);
-  
-  const [loadingArticles, setLoadingArticles] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [triggerLoading, setTriggerLoading] = useState(false);
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('articles'); // 'articles' | 'history' | 'users'
-  
-  const [triggerSummary, setTriggerSummary] = useState(null);
-  const [showTriggerModal, setShowTriggerModal] = useState(false);
 
   // Fetch categories, articles, and users on mount
   useEffect(() => {

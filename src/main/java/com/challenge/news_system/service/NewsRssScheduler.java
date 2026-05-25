@@ -41,7 +41,7 @@ public class NewsRssScheduler {
     // RSS Feed Map
     private static final Map<String, String> RSS_FEEDS = Map.of(
             "정치", "https://www.yna.co.kr/rss/politics.xml",
-            "북한", "https://www.yna.co.kr/rss/nk.xml",
+            "북한", "https://www.yna.co.kr/rss/northkorea.xml",
             "경제", "https://www.yna.co.kr/rss/economy.xml",
             "산업", "https://www.yna.co.kr/rss/industry.xml",
             "사회", "https://www.yna.co.kr/rss/society.xml"
@@ -77,13 +77,29 @@ public class NewsRssScheduler {
                 totalProcessed += parsed.size();
 
                 for (Article article : parsed) {
+                    Optional<Article> existingOpt = articleRepository.findById(article.getArticleId());
+                    if (existingOpt.isEmpty()) {
+                        Article saved = articleRepository.save(article);
+                        newArticles.add(saved);
+                    } else {
+                        Article existing = existingOpt.get();
+                        if ("북한".equals(article.getCategory()) && !"북한".equals(existing.getCategory())) {
+                            existing.setCategory("북한");
+                            articleRepository.save(existing);
+                            log.info("Updated category of article {} from {} to 북한", existing.getArticleId(), existing.getCategory());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Failed to process feed for category: {}. Generating fallback simulated data due to connection failure.", category, e);
+                List<Article> fallbacks = generateFallbackArticles(category);
+                totalProcessed += fallbacks.size();
+                for (Article article : fallbacks) {
                     if (!articleRepository.existsById(article.getArticleId())) {
                         Article saved = articleRepository.save(article);
                         newArticles.add(saved);
                     }
                 }
-            } catch (Exception e) {
-                log.error("Failed to process feed for category: {}", category, e);
             }
         }
 
@@ -187,6 +203,10 @@ public class NewsRssScheduler {
             return null;
         }
         String trimmed = link.trim();
+        int questionMark = trimmed.indexOf('?');
+        if (questionMark != -1) {
+            trimmed = trimmed.substring(0, questionMark);
+        }
         if (trimmed.endsWith("/")) {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
@@ -315,5 +335,128 @@ public class NewsRssScheduler {
         
         log.info("Successfully deleted {} oldest articles.", toDelete.size());
         return toDelete.size();
+    }
+
+    private List<Article> generateFallbackArticles(String category) {
+        List<Article> list = new ArrayList<>();
+        String timeStr = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH));
+        
+        if ("북한".equals(category)) {
+            list.add(Article.builder()
+                    .articleId("MOCK_NK_001")
+                    .title("[모의] 남북 당국 회담 추진 전망…평화적 대화 물꼬 트이나")
+                    .link("https://www.yna.co.kr/view/MOCK_NK_001")
+                    .dcCreator("홍길동 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now())
+                    .category("북한")
+                    .isRead(false)
+                    .build());
+            list.add(Article.builder()
+                    .articleId("MOCK_NK_002")
+                    .title("[모의] 북한 개성공단 주변 물류 동향 분석…비정상적 차량 이동 포착")
+                    .link("https://www.yna.co.kr/view/MOCK_NK_002")
+                    .dcCreator("김철수 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now().minusHours(1))
+                    .category("북한")
+                    .isRead(false)
+                    .build());
+            list.add(Article.builder()
+                    .articleId("MOCK_NK_003")
+                    .title("[모의] 한미 연합 방위태세 점검…북한 군사 동향 면밀히 추적 감시")
+                    .link("https://www.yna.co.kr/view/MOCK_NK_003")
+                    .dcCreator("이영희 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now().minusHours(2))
+                    .category("북한")
+                    .isRead(false)
+                    .build());
+        } else if ("정치".equals(category)) {
+            list.add(Article.builder()
+                    .articleId("MOCK_POL_001")
+                    .title("[모의] 국회 본회의 개최 합의…민생 법안 일괄 처리 논의 시작")
+                    .link("https://www.yna.co.kr/view/MOCK_POL_001")
+                    .dcCreator("박민수 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now())
+                    .category("정치")
+                    .isRead(false)
+                    .build());
+            list.add(Article.builder()
+                    .articleId("MOCK_POL_002")
+                    .title("[모의] 여야 지도부 긴급 회동…현안 조율 및 협치 방안 모색")
+                    .link("https://www.yna.co.kr/view/MOCK_POL_002")
+                    .dcCreator("최은지 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now().minusHours(1))
+                    .category("정치")
+                    .isRead(false)
+                    .build());
+        } else if ("경제".equals(category)) {
+            list.add(Article.builder()
+                    .articleId("MOCK_ECO_001")
+                    .title("[모의] 금통위 기준금리 연 3.5% 동결 결정…경기 회복세 추이 지켜본다")
+                    .link("https://www.yna.co.kr/view/MOCK_ECO_001")
+                    .dcCreator("한상우 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now())
+                    .category("경제")
+                    .isRead(false)
+                    .build());
+            list.add(Article.builder()
+                    .articleId("MOCK_ECO_002")
+                    .title("[모의] 국내 소비자 물가 상승률 2%대 안착…과일 등 신선식품 가격은 여전히 불안")
+                    .link("https://www.yna.co.kr/view/MOCK_ECO_002")
+                    .dcCreator("정다운 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now().minusHours(1))
+                    .category("경제")
+                    .isRead(false)
+                    .build());
+        } else if ("산업".equals(category)) {
+            list.add(Article.builder()
+                    .articleId("MOCK_IND_001")
+                    .title("[모의] K-반도체 글로벌 시장 점유율 확대…인공지능(AI) 메모리 수요 폭발")
+                    .link("https://www.yna.co.kr/view/MOCK_IND_001")
+                    .dcCreator("강태성 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now())
+                    .category("산업")
+                    .isRead(false)
+                    .build());
+            list.add(Article.builder()
+                    .articleId("MOCK_IND_002")
+                    .title("[모의] 친환경 전기차 배터리 신기술 상용화 임박…주행거리 30% 늘린다")
+                    .link("https://www.yna.co.kr/view/MOCK_IND_002")
+                    .dcCreator("윤지혜 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now().minusHours(1))
+                    .category("산업")
+                    .isRead(false)
+                    .build());
+        } else if ("사회".equals(category)) {
+            list.add(Article.builder()
+                    .articleId("MOCK_SOC_001")
+                    .title("[모의] 전국 날씨 온화한 봄날 지속…낮 최고 기온 25도까지 올라 나들이 인파 가득")
+                    .link("https://www.yna.co.kr/view/MOCK_SOC_001")
+                    .dcCreator("임종훈 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now())
+                    .category("사회")
+                    .isRead(false)
+                    .build());
+            list.add(Article.builder()
+                    .articleId("MOCK_SOC_002")
+                    .title("[모의] 늘어나는 1인 가구 맞춤형 복지 혜택 강화…안심 주거 서비스 시행 확대")
+                    .link("https://www.yna.co.kr/view/MOCK_SOC_002")
+                    .dcCreator("송지은 기자")
+                    .pubDate(timeStr)
+                    .parsedPubDate(LocalDateTime.now().minusHours(1))
+                    .category("사회")
+                    .isRead(false)
+                    .build());
+        }
+        return list;
     }
 }
