@@ -294,9 +294,9 @@ function App() {
   const paginatedUsers = users.slice(usersStartIndex, usersStartIndex + usersPageSize);
 
   return (
-    <div className="min-h-screen bg-[#080b11] text-slate-100 flex flex-col font-sans">
+    <div className="h-screen overflow-hidden bg-[#080b11] text-slate-100 flex flex-col font-sans">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#0c121e]/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+      <header className="shrink-0 z-30 bg-[#0c121e]/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
             <Newspaper className="w-5 h-5 text-white" />
@@ -321,9 +321,9 @@ function App() {
       </header>
 
       {/* Main Container */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-full lg:w-64 bg-[#0a0f18] border-r border-slate-800 flex flex-col shrink-0">
+        <aside className="w-full lg:w-64 max-h-full bg-[#0a0f18] border-r border-slate-800 flex flex-col shrink-0 overflow-hidden">
           {/* Navigation Tabs */}
           <div className="p-4 border-b border-slate-800/60 flex flex-row lg:flex-col gap-2">
             <button
