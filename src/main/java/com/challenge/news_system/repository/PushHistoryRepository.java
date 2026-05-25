@@ -15,6 +15,9 @@ public interface PushHistoryRepository extends JpaRepository<PushHistory, Long> 
 
     // 과제 2: 발송 실패하여 아직 처리가 끝나지 않은(재시도 대상) 이력 조회
     List<PushHistory> findByStatusAndIsCompletedFalse(String status);
+
+    // 과제 2: 대용량 병목 방지를 위해 페이징(Limit) 처리가 가능한 재시도 대상 조회
+    List<PushHistory> findByStatusAndIsCompletedFalse(String status, Pageable pageable);
 }
 
 

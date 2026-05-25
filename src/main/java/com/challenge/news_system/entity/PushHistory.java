@@ -12,6 +12,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "push_history")
@@ -49,6 +50,7 @@ public class PushHistory {
 
     @Builder.Default
     @Column(name = "is_completed", nullable = false)
+    @JsonProperty("isCompleted")
     private boolean isCompleted = false; // 과제 2: 발송 작업 최종 완료 여부
 
     @Builder.Default

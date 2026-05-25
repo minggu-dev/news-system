@@ -678,10 +678,10 @@ function App() {
                                   <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
                                     <CheckCircle className="w-3.5 h-3.5" /> 성공
                                   </span>
-                                ) : !item.isCompleted ? (
+                                ) : !(item.isCompleted !== undefined ? item.isCompleted : item.completed) ? (
                                   <div className="flex flex-col">
                                     <span className="inline-flex items-center gap-1 text-amber-400 font-semibold">
-                                      <RefreshCw className="w-3 h-3 animate-spin text-amber-400" /> 재시도 중 ({item.retryCount || 1}/3)
+                                      <RefreshCw className="w-3 h-3 animate-spin text-amber-400" /> 재시도 중 ({item.retryCount + 1}/3)
                                     </span>
                                     {/* 과제 2: 푸시 실패 시 상세 실패 사유를 한국어로 번역하여 하단에 작게 표시합니다 */}
                                     {item.failReason && (
