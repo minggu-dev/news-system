@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Additional base styling or custom styles can be added here */
+/* 공통: 기본 스타일이나 커스텀 스타일을 추가하는 영역입니다. */
 body {
   margin: 0;
   font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -14,7 +14,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbars for dashboard panels */
+/* 공통: 대시보드 패널용 커스텀 스크롤바입니다. */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -33,11 +33,11 @@ body {
   background: rgba(148, 163, 184, 0.5);
 }
 
-/* Hide scrollbars for the sidebar to prevent layout shifting and maintain visual consistency */
+/* 공통: 사이드바 레이아웃 흔들림을 막기 위해 스크롤바를 숨깁니다. */
 aside, aside * {
   scrollbar-width: none !important; /* Firefox */
-  -ms-overflow-style: none !important; /* IE and Edge */
+  -ms-overflow-style: none !important; /* IE와 Edge */
 }
 aside::-webkit-scrollbar, aside *::-webkit-scrollbar {
-  display: none !important; /* Chrome, Safari and Opera */
+  display: none !important; /* Chrome, Safari, Opera */
 }

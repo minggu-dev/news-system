@@ -36,6 +36,6 @@ public interface ArticleRepository extends JpaRepository<Article, String> {
             @Param("search") String search,
             Pageable pageable);
 
-    // Find the oldest articles to delete when count > 1000
+    // 공통: 1,000건 보관 정책 적용 시 오래된 기사부터 삭제하기 위해 조회합니다.
     List<Article> findAllByOrderByParsedPubDateAsc();
 }

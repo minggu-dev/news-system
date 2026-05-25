@@ -1,22 +1,24 @@
 package com.challenge.news_system.service;
 
-/** PushNotificationService 인터페이스 */
+/** 과제 2: 푸시 발송 처리를 추상화한 인터페이스 */
 public interface PushNotificationService {
     /**
-     * APNS를 통해 iOS 사용자에게 푸시 알림 발송
-     * @param device_id iOS 사용자 기기 고유 아이디
-     * @param article_id 발송할 기사의 고유 아이디
+     * APNs를 통해 iOS 사용자에게 푸시 알림을 발송합니다.
+     *
+     * @param device_id iOS 사용자 기기 고유 ID
+     * @param article_id 발송할 기사 고유 ID
      * @param title 기사 제목
-     * @return "success" 또는 "fail" (랜덤 반환)
+     * @return 발송 결과(success 또는 fail)
      */
     String sendAPNS(String device_id, String article_id, String title);
 
     /**
-     * FCM을 통해 Android 사용자에게 푸시 알림 발송
-     * @param device_id Android 사용자 기기 고유 아이디
-     * @param article_id 발송할 기사의 고유 아이디
+     * FCM을 통해 Android 사용자에게 푸시 알림을 발송합니다.
+     *
+     * @param device_id Android 사용자 기기 고유 ID
+     * @param article_id 발송할 기사 고유 ID
      * @param title 기사 제목
-     * @return "success" 또는 "fail" (랜덤 반환)
+     * @return 발송 결과(success 또는 fail)
      */
     String sendFCM(String device_id, String article_id, String title);
 }

@@ -22,7 +22,7 @@ import java.util.Map;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*") // Prevent CORS issues when running local React dev servers
+@CrossOrigin(origins = "*") // 공통: 로컬 프론트엔드와 API 통신 시 CORS 오류를 방지
 public class NewsApiController {
 
     private final ArticleRepository articleRepository;
@@ -31,7 +31,7 @@ public class NewsApiController {
     private final NewsRssScheduler newsRssScheduler;
 
     /**
-     * Get the 5 news categories.
+     * 과제 1: 기사 열람 화면에서 사용할 뉴스 카테고리 목록을 조회합니다.
      */
     @GetMapping("/categories")
     public ResponseEntity<List<String>> getCategories() {
@@ -39,7 +39,7 @@ public class NewsApiController {
     }
 
     /**
-     * Get paged articles. Optional category and search filters.
+     * 과제 1: 기사 목록을 카테고리, 검색어, 페이지 조건으로 조회합니다.
      */
     @GetMapping("/articles")
     public ResponseEntity<Page<Article>> getArticles(
@@ -57,7 +57,7 @@ public class NewsApiController {
     }
 
     /**
-     * Mark an article as read.
+     * 과제 1: 사용자가 열람한 기사를 읽음 상태로 변경합니다.
      */
     @PostMapping("/articles/{articleId}/read")
     public ResponseEntity<Article> markAsRead(@PathVariable("articleId") String articleId) {
@@ -75,7 +75,7 @@ public class NewsApiController {
     }
 
     /**
-     * Get simulated push notification history with pagination.
+     * 과제 2: 푸시 발송 이력을 페이지 단위로 조회합니다.
      */
     @GetMapping("/push-history")
     public ResponseEntity<Page<PushHistory>> getPushHistory(
@@ -86,7 +86,7 @@ public class NewsApiController {
     }
 
     /**
-     * Get seeded users.
+     * 과제 2: CSV에서 초기 적재한 사용자 목록을 조회합니다.
      */
     @GetMapping("/users")
     public ResponseEntity<List<User>> getUsers() {
@@ -94,7 +94,7 @@ public class NewsApiController {
     }
 
     /**
-     * Manually trigger the RSS parsing, deduplication, user matching, and push dispatch process.
+     * 공통: 스케줄러에 등록된 RSS 수집 및 푸시 매칭 로직을 수동으로 실행합니다.
      */
     @PostMapping("/trigger-scheduler")
     public ResponseEntity<Map<String, Object>> triggerScheduler() {

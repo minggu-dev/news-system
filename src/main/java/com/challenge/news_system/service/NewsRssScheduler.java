@@ -38,7 +38,7 @@ public class NewsRssScheduler {
     private final PushHistoryRepository pushHistoryRepository;
     private final PushNotificationService pushNotificationService;
 
-    // RSS Feed Map
+    // 공통: 연합뉴스 카테고리별 RSS 피드 주소입니다.
     private static final Map<String, String> RSS_FEEDS = Map.of(
             "정치", "https://www.yna.co.kr/rss/politics.xml",
             "북한", "https://www.yna.co.kr/rss/northkorea.xml",
@@ -47,7 +47,7 @@ public class NewsRssScheduler {
             "사회", "https://www.yna.co.kr/rss/society.xml"
     );
 
-    // Schedule to run every 10 minutes
+    // 공통: 서버 실행 중 10분마다 RSS 수집 로직을 자동 실행합니다.
     @Scheduled(fixedDelay = 600000)
     public void scheduleRssPull() {
         log.info("Starting scheduled RSS pull...");
@@ -59,8 +59,8 @@ public class NewsRssScheduler {
     }
 
     /**
-     * Pulls RSS feeds, saves new articles, triggers push matching, and enforces 1,000-article limits.
-     * Returns a processing summary.
+     * 공통: RSS 피드를 수집하고 신규 기사를 저장한 뒤 처리 결과를 반환합니다.
+     * 과제 2: 신규 기사에 대해서는 사용자 매칭과 푸시 발송 이력 저장까지 함께 수행합니다.
      */
     @Transactional
     public Map<String, Object> pullAndProcessRss() {
@@ -109,7 +109,7 @@ public class NewsRssScheduler {
 
         log.info("RSS Pull finished. Parsed: {}, Newly Saved: {}", totalProcessed, newArticles.size());
 
-        // Trigger Push Notification matching for new articles
+        // 과제 2: 신규 기사에 대해 사용자 관심 카테고리와 DND 시간을 기준으로 푸시 발송 대상을 매칭합니다.
         int pushesSent = 0;
         int pushesSkippedDnd = 0;
         if (!newArticles.isEmpty()) {
@@ -118,7 +118,7 @@ public class NewsRssScheduler {
             pushesSkippedDnd = pushResult.getOrDefault("skippedDnd", 0);
         }
 
-        // Enforce 1,000-article database limit
+        // 공통: 기사 데이터가 1,000건을 넘으면 오래된 기사부터 정리합니다.
         int deletedCount = enforceArticleRetentionLimit();
 
         Map<String, Object> summary = new HashMap<>();
@@ -144,7 +144,7 @@ public class NewsRssScheduler {
 
         try (InputStream is = conn.getInputStream()) {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setCoalescing(true); // Automatically merges CDATA sections into Text nodes
+            factory.setCoalescing(true); // 공통: CDATA 섹션을 일반 텍스트 노드로 병합합니다.
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(is);
             doc.getDocumentElement().normalize();
@@ -159,7 +159,7 @@ public class NewsRssScheduler {
                     String link = getElementValue(element, "link");
                     String dcCreator = getElementValue(element, "dc:creator");
                     if (dcCreator == null) {
-                        dcCreator = getElementValue(element, "creator"); // fallback
+                        dcCreator = getElementValue(element, "creator"); // 공통: dc:creator가 없을 때 creator 태그를 보조로 사용합니다.
                     }
                     String pubDate = getElementValue(element, "pubDate");
 
@@ -177,7 +177,7 @@ public class NewsRssScheduler {
                     String imageUrl = null;
                     NodeList mediaList = element.getElementsByTagName("media:content");
                     if (mediaList == null || mediaList.getLength() == 0) {
-                        mediaList = element.getElementsByTagName("content"); // fallback
+                        mediaList = element.getElementsByTagName("content"); // 과제 1: media:content가 없을 때 content 태그를 보조로 사용합니다.
                     }
                     if (mediaList != null && mediaList.getLength() > 0) {
                         Element mediaElement = (Element) mediaList.item(0);
@@ -240,7 +240,7 @@ public class NewsRssScheduler {
             return LocalDateTime.now();
         }
         try {
-            // RFC 1123 format (e.g. "Mon, 18 May 2026 14:42:49 +0900")
+            // 공통: RSS pubDate의 RFC 1123 형식을 우선 파싱합니다.
             return ZonedDateTime.parse(pubDateStr, DateTimeFormatter.RFC_1123_DATE_TIME).toLocalDateTime();
         } catch (Exception e) {
             try {
@@ -263,16 +263,16 @@ public class NewsRssScheduler {
 
         for (Article article : articles) {
             for (User user : users) {
-                // Check if user is interested in this article's category
+                // 과제 2: 사용자가 해당 기사 카테고리를 구독했는지 확인합니다.
                 if (isUserSubscribed(user, article.getCategory())) {
-                    // Check DND Hour
+                    // 과제 2: 사용자의 푸시 금지 시간대에 해당하는지 확인합니다.
                     if (isTimeInDnd(nowTime, user.getDndTime())) {
                         skippedDnd++;
                         log.debug("Skipping push to user {} (ID: {}) due to DND hours: {}", user.getName(), user.getId(), user.getDndTime());
                         continue;
                     }
 
-                    // Attempt send push
+                    // 과제 2: 사용자 기기 유형에 맞춰 푸시 발송을 시도합니다.
                     String status;
                     if ("APNs".equalsIgnoreCase(user.getPushType())) {
                         status = pushNotificationService.sendAPNS(user.getDeviceId(), article.getArticleId(), article.getTitle());
@@ -326,10 +326,10 @@ public class NewsRssScheduler {
             LocalTime end = LocalTime.parse(parts[1].trim());
 
             if (start.isAfter(end)) {
-                // Spans midnight (e.g. 23:00-11:00)
+                // 과제 2: 자정을 넘어가는 DND 구간입니다. 예: 23:00-11:00
                 return now.isAfter(start) || now.equals(start) || now.isBefore(end) || now.equals(end);
             } else {
-                // Normal same day (e.g. 09:00-18:00)
+                // 과제 2: 같은 날짜 안에서 끝나는 DND 구간입니다. 예: 09:00-18:00
                 return (now.isAfter(start) || now.equals(start)) && (now.isBefore(end) || now.equals(end));
             }
         } catch (Exception e) {

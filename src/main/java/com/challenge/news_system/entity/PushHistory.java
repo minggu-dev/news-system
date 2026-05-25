@@ -30,7 +30,7 @@ public class PushHistory {
     private String deviceId;
 
     @Column(name = "push_type", nullable = false, length = 10)
-    private String pushType; // APNS or FCM
+    private String pushType; // 과제 2: APNs 또는 FCM
 
     @Column(name = "article_title", nullable = false, length = 500)
     private String articleTitle;
@@ -42,5 +42,5 @@ public class PushHistory {
     private LocalDateTime sentAt;
 
     @Column(nullable = false, length = 10)
-    private String status; // success or fail
+    private String status; // 과제 2: 푸시 발송 결과(success 또는 fail)
 }

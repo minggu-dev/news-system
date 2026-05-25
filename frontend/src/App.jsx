@@ -53,7 +53,7 @@ function App() {
   const [historyTotalElements, setHistoryTotalElements] = useState(0);
   const [historyPageSize, setHistoryPageSize] = useState(20);
   const [users, setUsers] = useState([]);
-  const [currentView, setCurrentView] = useState('categories'); // 'categories' | 'list'
+  const [currentView, setCurrentView] = useState('categories'); // 과제 1: 카테고리 선택 화면 또는 기사 목록 화면
   const [selectedArticle, setSelectedArticle] = useState(null);
   
   const [loadingArticles, setLoadingArticles] = useState(false);
@@ -65,7 +65,7 @@ function App() {
   const [usersError, setUsersError] = useState('');
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('articles'); // 'articles' | 'history' | 'users'
+  const [activeTab, setActiveTab] = useState('articles'); // 공통: 기사 열람, 푸시 이력, 사용자 정보 탭
   
   const [triggerSummary, setTriggerSummary] = useState(null);
   const [showTriggerModal, setShowTriggerModal] = useState(false);
@@ -75,12 +75,12 @@ function App() {
   const [usersCurrentPage, setUsersCurrentPage] = useState(1);
   const [usersPageSize, setUsersPageSize] = useState(10);
 
-  // Reset current page when category or search term changes
+  // 과제 1: 카테고리나 검색어가 바뀌면 기사 목록을 첫 페이지로 되돌립니다.
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedCategory, searchTerm]);
 
-  // Reset to categories view when navigating back to articles tab
+  // 과제 1: 기사 열람 탭으로 돌아오면 카테고리 선택 화면부터 보여줍니다.
   useEffect(() => {
     if (activeTab === 'articles') {
       setCurrentView('categories');
@@ -134,7 +134,7 @@ function App() {
     }
   };
 
-  // Fetch categories, articles, and users on mount
+  // 공통: 최초 진입 시 카테고리와 사용자 정보를 조회합니다.
   useEffect(() => {
     fetchCategories();
     fetchUsers();
@@ -142,7 +142,7 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch articles when category, search, page, or page size changes
+  // 과제 1: 카테고리, 검색어, 페이지 조건이 바뀌면 기사 목록을 다시 조회합니다.
   useEffect(() => {
     fetchArticles(selectedCategory, currentPage - 1, pageSize, searchTerm);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -242,14 +242,14 @@ function App() {
   const handleArticleClick = async (article) => {
     setSelectedArticle(article);
     
-    // If article is unread, trigger read API
+    // 과제 1: 읽지 않은 기사를 열람하면 읽음 처리 API를 호출합니다.
     if (!article.read) {
       try {
         const res = await fetch(`${API_BASE_URL}/articles/${article.articleId}/read`, {
           method: 'POST'
         });
         if (res.ok) {
-          // Update local articles state
+          // 과제 1: API 성공 후 목록의 읽음 상태를 즉시 갱신합니다.
           setArticles(prev => 
             prev.map(a => a.articleId === article.articleId ? { ...a, read: true } : a)
           );
@@ -271,7 +271,7 @@ function App() {
       if (res.ok) {
         const data = await res.json();
         setTriggerSummary(data);
-        // Refresh articles and history
+        // 공통: RSS 수집 후 기사 목록과 푸시 이력을 다시 조회합니다.
         fetchArticles(selectedCategory);
         fetchPushHistory();
       } else {
@@ -295,7 +295,7 @@ function App() {
 
   return (
     <div className="h-screen overflow-hidden bg-[#080b11] text-slate-100 flex flex-col font-sans">
-      {/* Header */}
+      {/* 공통: 상단 헤더 */}
       <header className="shrink-0 z-30 bg-[#0c121e]/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
@@ -320,11 +320,11 @@ function App() {
         </div>
       </header>
 
-      {/* Main Container */}
+      {/* 공통: 좌측 사이드바와 본문 영역 */}
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
-        {/* Sidebar */}
+        {/* 공통: 사이드바 */}
         <aside className="w-full lg:w-64 max-h-full bg-[#0a0f18] border-r border-slate-800 flex flex-col shrink-0 overflow-hidden">
-          {/* Navigation Tabs */}
+          {/* 공통: 과제별 화면 전환 탭 */}
           <div className="p-4 border-b border-slate-800/60 flex flex-row lg:flex-col gap-2">
             <button
               onClick={() => setActiveTab('articles')}
@@ -361,7 +361,7 @@ function App() {
             </button>
           </div>
 
-          {/* Category Filter - Only shows when 'articles' tab is active and currentView is list */}
+          {/* 과제 1: 기사 목록 화면에서만 노출되는 카테고리 필터 */}
           {activeTab === 'articles' && currentView === 'list' && (
             <div className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2 px-2">
@@ -401,12 +401,12 @@ function App() {
           )}
         </aside>
 
-        {/* Content Body */}
+        {/* 공통: 선택된 탭의 본문 영역 */}
         <main className="flex-1 flex flex-col overflow-hidden bg-[#070a10]">
           {activeTab === 'articles' && (
             <div className="flex-1 flex flex-col overflow-hidden">
               {currentView === 'categories' ? (
-                /* 1. Category Selection Screen */
+                /* 과제 1: 카테고리 선택 화면 */
                 <div className="flex-1 overflow-y-auto p-8 flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
                   <div className="text-center mb-8">
                     <h2 className="text-2xl font-extrabold text-white bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
@@ -463,9 +463,9 @@ function App() {
                   </div>
                 </div>
               ) : (
-                /* 2. Article List Screen */
+                /* 과제 1: 기사 목록 화면 */
                 <div className="flex-1 flex flex-col overflow-hidden">
-                  {/* Search bar & Back Button */}
+                  {/* 과제 1: 검색창과 카테고리 목록 복귀 버튼 */}
                   <div className="p-4 bg-[#0a0f18]/60 border-b border-slate-800/60 flex items-center gap-3">
                     <button
                       onClick={() => setCurrentView('categories')}
@@ -504,7 +504,7 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Articles list */}
+                  {/* 과제 1: 기사 목록 */}
                   <div className="flex-1 overflow-y-auto p-6">
                     {loadingArticles ? (
                       <div className="h-full flex items-center justify-center flex-col gap-3">
@@ -537,7 +537,7 @@ function App() {
                       </div>
                     ) : (
                       <div className="flex flex-col gap-6">
-                        {/* Row Layout List */}
+                        {/* 과제 1: 행 형태의 기사 카드 목록 */}
                         <div className="flex flex-col gap-4">
                           {paginatedArticles.map((article) => (
                             <ArticleCard
@@ -580,7 +580,7 @@ function App() {
                 </p>
               </div>
 
-              {/* History list */}
+              {/* 과제 2: 푸시 발송 이력 목록 */}
               <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
                 {loadingHistory ? (
                   <div className="flex-1 flex items-center justify-center flex-col gap-3">
@@ -701,7 +701,7 @@ function App() {
                 </p>
               </div>
 
-              {/* Users list */}
+              {/* 과제 2: 사용자 정보 목록 */}
               <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
                 {usersError ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
@@ -803,7 +803,7 @@ function App() {
         formatPubDate={formatPubDate}
       />
 
-      {/* Trigger Summary Modal */}
+      {/* 공통: RSS 수집 및 푸시 실행 결과 모달 */}
       {showTriggerModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs px-4">
           <div className="w-full max-w-md bg-[#0a0f18] border border-slate-800 rounded-2xl shadow-2xl p-6 relative overflow-hidden">

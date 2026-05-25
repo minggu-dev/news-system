@@ -30,7 +30,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                     new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
                 
                 String line;
-                // Skip header line
+                // 과제 2: 사용자 CSV의 헤더 행은 건너뜁니다.
                 reader.readLine();
                 
                 List<User> users = new ArrayList<>();
