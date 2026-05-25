@@ -9,6 +9,7 @@ import {
   Search, 
   X, 
   ChevronRight, 
+  Clock,
   Info,
   Filter
 } from 'lucide-react';
@@ -138,11 +139,13 @@ function App() {
     fetchCategories();
     fetchUsers();
     fetchPushHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch articles when category, search, page, or page size changes
   useEffect(() => {
     fetchArticles(selectedCategory, currentPage - 1, pageSize, searchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, currentPage, pageSize, searchTerm]);
 
   const fetchCategories = async () => {
@@ -584,6 +587,20 @@ function App() {
                     <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
                     <p className="text-sm text-slate-400">발송 로그를 로딩하는 중입니다...</p>
                   </div>
+                ) : historyError ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                    <div className="w-16 h-16 rounded-full bg-rose-950/30 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-4">
+                      <AlertCircle className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-base font-semibold text-slate-200">발송 이력을 불러오지 못했습니다</h3>
+                    <p className="text-sm text-slate-500 mt-1 max-w-sm">{historyError}</p>
+                    <button
+                      onClick={() => fetchPushHistory(historyPage, historyPageSize)}
+                      className="mt-4 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors"
+                    >
+                      다시 시도
+                    </button>
+                  </div>
                 ) : pushHistory.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                     <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-4">
@@ -686,7 +703,21 @@ function App() {
 
               {/* Users list */}
               <div className="flex-1 bg-[#0a0f18] border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
-                {users.length === 0 ? (
+                {usersError ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                    <div className="w-16 h-16 rounded-full bg-rose-950/30 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-4">
+                      <AlertCircle className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-base font-semibold text-slate-200">사용자 목록을 불러오지 못했습니다</h3>
+                    <p className="text-sm text-slate-500 mt-1 max-w-sm">{usersError}</p>
+                    <button
+                      onClick={fetchUsers}
+                      className="mt-4 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors"
+                    >
+                      다시 시도
+                    </button>
+                  </div>
+                ) : users.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center flex-col gap-3">
                     <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-400 animate-spin" />
                     <p className="text-sm text-slate-400">사용자 목록을 불러오는 중입니다...</p>
@@ -766,73 +797,11 @@ function App() {
         </main>
       </div>
 
-      {/* Article Detail Drawer Modal */}
-      {selectedArticle && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs">
-          {/* Backdrop Click */}
-          <div className="absolute inset-0" onClick={() => setSelectedArticle(null)} />
-          
-          {/* Drawer Panel */}
-          <div className="relative w-full max-w-4xl h-full bg-[#0a0f18] border-l border-slate-800 shadow-2xl flex flex-col animate-slide-in">
-            {/* Header */}
-            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-[#0e1423]/50">
-              <div className="flex flex-col gap-1 max-w-[85%]">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-cyan-400 uppercase">
-                    {selectedArticle.category}
-                  </span>
-                  <span className="text-xs text-slate-400">|</span>
-                  <span className="text-xs text-slate-400 font-mono">ID: {selectedArticle.articleId}</span>
-                </div>
-                <h2 className="text-base font-bold text-white line-clamp-1 mt-1" title={selectedArticle.title}>
-                  {selectedArticle.title}
-                </h2>
-              </div>
-              <button
-                onClick={() => setSelectedArticle(null)}
-                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/80 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Embedded Iframe body or Fallback view */}
-            <div className="flex-1 bg-white relative flex flex-col">
-              <iframe
-                src={selectedArticle.link}
-                title={selectedArticle.title}
-                className="w-full h-full border-none"
-                sandbox="allow-same-origin allow-scripts allow-popups"
-              />
-              
-              {/* Iframe Notice Overlay (Portals block iframe loading due to X-Frame-Options) */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#090d16]/95 border border-slate-800 p-4 rounded-xl shadow-xl flex items-center gap-4 text-xs text-slate-300 max-w-md">
-                <Info className="w-6 h-6 text-cyan-500 shrink-0" />
-                <div>
-                  <p className="font-semibold text-white">포털 사이트 프레임 제한 안내</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    연합뉴스 및 일부 외부 사이트는 브라우저 보안 규정(X-Frame-Options)에 의해 인앱 뷰어 로딩이 차단될 수 있습니다. 화면이 보이지 않는 경우 아래 버튼을 사용해 새 창으로 기사를 확인하세요.
-                  </p>
-                </div>
-                <a
-                  href={selectedArticle.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-3 py-2 rounded-lg shrink-0 flex items-center gap-1 transition-all duration-200"
-                >
-                  새 창 열기 <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-
-            {/* Info footer */}
-            <div className="p-4 bg-[#0a0f18] border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
-              <span>작성자: {selectedArticle.dcCreator || '연합뉴스'}</span>
-              <span>수집 발행시각: {formatPubDate(selectedArticle.pubDate)}</span>
-            </div>
-          </div>
-        </div>
-      )}
+      <ArticleDrawer
+        article={selectedArticle}
+        onClose={() => setSelectedArticle(null)}
+        formatPubDate={formatPubDate}
+      />
 
       {/* Trigger Summary Modal */}
       {showTriggerModal && (
