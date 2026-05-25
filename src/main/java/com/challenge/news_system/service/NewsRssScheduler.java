@@ -76,19 +76,31 @@ public class NewsRssScheduler {
                 List<Article> parsed = parseRssFeed(feedUrl, category);
                 totalProcessed += parsed.size();
 
+                List<String> parsedArticleIds = new ArrayList<>();
                 for (Article article : parsed) {
-                    Optional<Article> existingOpt = articleRepository.findById(article.getArticleId());
-                    if (existingOpt.isEmpty()) {
-                        Article saved = articleRepository.save(article);
-                        newArticles.add(saved);
-                    } else {
-                        Article existing = existingOpt.get();
-                        if ("북한".equals(article.getCategory()) && !"북한".equals(existing.getCategory())) {
-                            existing.setCategory("북한");
-                            articleRepository.save(existing);
-                            log.info("Updated category of article {} from {} to 북한", existing.getArticleId(), existing.getCategory());
-                        }
+                    parsedArticleIds.add(article.getArticleId());
+                }
+
+                Map<String, Article> existingArticleById = new HashMap<>();
+                for (Article existing : articleRepository.findAllById(parsedArticleIds)) {
+                    existingArticleById.put(existing.getArticleId(), existing);
+                }
+
+                List<Article> articlesToSave = new ArrayList<>();
+                Set<String> newArticleIds = new HashSet<>();
+
+                for (Article article : parsed) {
+                    Article existing = existingArticleById.get(article.getArticleId());
+                    if (existing != null) {
+                        continue;
                     }
+                    if (newArticleIds.add(article.getArticleId())) {
+                        articlesToSave.add(article);
+                    }
+                }
+
+                if (!articlesToSave.isEmpty()) {
+                    newArticles.addAll(articleRepository.saveAll(articlesToSave));
                 }
             } catch (Exception e) {
                 log.error("Failed to process feed for category: {}. Skipping this feed.", category, e);
