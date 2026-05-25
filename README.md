@@ -113,7 +113,32 @@ http://localhost:8080
 | POST | `/api/articles/{articleId}/read` | 기사 읽음 처리 |
 | GET | `/api/users` | 사용자 목록 조회 |
 | GET | `/api/push-history?page=0&size=20` | 푸시 발송 이력 페이징 조회 |
-| POST | `/api/trigger-scheduler` | RSS 수집 및 푸시 매칭 로직 즉시 실행 |
+| POST | `/api/trigger-scheduler` | 스케줄러의 RSS 기사 수집 및 푸시 매칭 로직 즉시 실행 |
+
+### RSS 기사 수집 API
+
+RSS 수집 로직은 스케줄러에 등록되어 서버 실행 중 10분마다 자동으로 수행됩니다. `POST /api/trigger-scheduler`는 같은 수집 로직을 수동으로 즉시 실행할 수 있도록 제공한 API입니다.
+
+처리 흐름:
+
+1. 정치, 북한, 경제, 산업, 사회 RSS 피드를 조회합니다.
+2. RSS item에서 기사 ID, 제목, 원문 링크, 작성자, 발행 시각, 썸네일, 카테고리를 파싱합니다.
+3. 이미 저장된 기사 ID는 중복 저장하지 않습니다.
+4. 새로 저장된 기사가 있으면 사용자 관심 카테고리와 DND 시간을 기준으로 푸시 발송 대상을 매칭합니다.
+5. 처리 결과 요약을 응답으로 반환합니다.
+
+응답 예시:
+
+```json
+{
+  "timestamp": "2026-05-25T13:30:00",
+  "parsedCount": 120,
+  "newSavedCount": 15,
+  "pushesSent": 8,
+  "pushesSkippedDnd": 2,
+  "deletedOldCount": 0
+}
+```
 
 ## AI 활용
 
